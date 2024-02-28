@@ -2,11 +2,14 @@ package cmd
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/theleeeo/thor/runner"
+	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -20,15 +23,29 @@ func init() {
 	cobra.CheckErr(viper.BindPFlag("dvalid-duration", startCmd.Flags().Lookup("valid-duration")))
 }
 
+func loadConfig() (*runner.Config, error) {
+	content, err := os.ReadFile("./.thor.yml")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var config runner.Config
+	err = yaml.Unmarshal(content, &config)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	return &config, nil
+}
+
 var startCmd = &cobra.Command{
 	Use:   "start",
 	Short: "Start the server",
 	RunE: func(cmd *cobra.Command, args []string) error {
 
-		cfg := &runner.Config{
-			Addr:          viper.GetString("addr"),
-			SecretKey:     viper.GetString("secret-key"),
-			ValidDuration: viper.GetDuration("valid-duration"),
+		cfg, err := loadConfig()
+		if err != nil {
+			return err
 		}
 
 		fmt.Println("Config:", cfg)
