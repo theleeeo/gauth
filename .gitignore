@@ -21,4 +21,8 @@
 go.work
 
 bin/
+
 .thor.yml
+
+data/
+tmp/

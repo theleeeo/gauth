@@ -50,7 +50,11 @@ var startCmd = &cobra.Command{
 
 		fmt.Println("Config:", cfg)
 
-		r := runner.New(cfg)
+		r, err := runner.New(cfg)
+		if err != nil {
+			return err
+		}
+
 		return r.Run()
 	},
 }

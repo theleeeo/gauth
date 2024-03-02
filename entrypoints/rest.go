@@ -3,16 +3,17 @@ package entrypoints
 import (
 	"net/http"
 
+	"github.com/theleeeo/thor/app"
 	"github.com/theleeeo/thor/authorizer"
 )
 
 type restHandler struct {
-	authorizer *authorizer.Authorizer
+	app *app.App
 }
 
-func NewRestHandler(a *authorizer.Authorizer) *restHandler {
+func NewRestHandler(app *app.App) *restHandler {
 	return &restHandler{
-		authorizer: a,
+		app: app,
 	}
 }
 
@@ -29,7 +30,7 @@ func (r *restHandler) Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if loginReq.Username == "admin" && loginReq.Password == "admin" {
-		token, err := r.authorizer.CreateToken(loginReq.Username, authorizer.RoleAdmin)
+		token, err := r.app.CreateToken(loginReq.Username, authorizer.RoleAdmin)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -42,7 +43,7 @@ func (r *restHandler) Login(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if loginReq.Username == "user" && loginReq.Password == "user" {
-		token, err := r.authorizer.CreateToken(loginReq.Username, authorizer.RoleUser)
+		token, err := r.app.CreateToken(loginReq.Username, authorizer.RoleUser)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -66,7 +67,7 @@ func (r *restHandler) WhoAmI(w http.ResponseWriter, req *http.Request) {
 
 	token = token[len("Bearer "):]
 
-	claims, err := r.authorizer.Decode(token)
+	claims, err := r.app.DecodeToken(token)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusUnauthorized)
 		return
