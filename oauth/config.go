@@ -1,5 +1,12 @@
 package oauth
 
+type Config struct {
+	// The URL of the app, used for redirecting after OAuth login
+	AppURL       string           `yaml:"app-url"`
+	CookieSecret string           `yaml:"cookie-secret"`
+	Providers    []ProviderConfig `yaml:"providers"`
+}
+
 type ProviderType string
 
 const (

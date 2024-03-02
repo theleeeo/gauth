@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/theleeeo/thor/app"
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/entrypoints"
@@ -36,15 +35,11 @@ func New(cfg *Config) (*Runner, error) {
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
 
-	store := sessions.NewCookieStore([]byte(cfg.AuthCfg.SecretKey))
-
-	for _, providerCfg := range cfg.OAuthProviders {
-		switch providerCfg.Type {
-		case oauth.GithubProviderType:
-			oauth, _ := oauth.NewGithub(providerCfg, cfg.AppURL, store)
-			oauth.Register(mux)
-		}
+	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, app)
+	if err != nil {
+		return nil, err
 	}
+	oauthHandler.Register(mux)
 
 	httpServer := &http.Server{
 		Addr:         cfg.Addr,

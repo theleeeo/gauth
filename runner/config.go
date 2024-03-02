@@ -10,14 +10,11 @@ import (
 type Config struct {
 	Addr string `yaml:"addr"`
 
-	// The URL of the app, used for redirecting after OAuth login
-	AppURL string `yaml:"app-url"`
-
 	AuthCfg AuthConfig `yaml:"auth-tokens"`
 
 	RepoCfg *repo.Config `yaml:"repo"`
 
-	OAuthProviders []oauth.ProviderConfig `yaml:"oauth-providers"`
+	OAuthConfig *oauth.Config `yaml:"oauth"`
 }
 
 type AuthConfig struct {
