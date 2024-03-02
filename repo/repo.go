@@ -11,8 +11,10 @@ import (
 type Repo interface {
 	// Perform the necessary clean up before the repo is discarded.
 	Close() error
+	Ping() error
 	CreateUser(ctx context.Context, user *models.User) error
-	GetUser(ctx context.Context, id string) (*models.User, error)
+	GetUserByID(ctx context.Context, id string) (*models.User, error)
+	GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error)
 }
 
 type Config struct {

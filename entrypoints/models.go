@@ -27,6 +27,6 @@ type LoginResponse struct {
 }
 
 type WhoAmIResponse struct {
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	UserID string `json:"userID"`
+	Role   string `json:"role"`
 }

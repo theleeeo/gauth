@@ -16,16 +16,37 @@ type Runner struct {
 	httpServer *http.Server
 }
 
-func New(cfg *Config) (*Runner, error) {
+func Run(cfg *Config) error {
+	//
+	// Create the authorizer
+	//
 	auth := authorizer.New(cfg.AuthCfg.SecretKey, cfg.AuthCfg.ValidDuration)
 
+	//
+	// Create the repository
+	//
 	repo, err := repo.New(cfg.RepoCfg)
 	if err != nil {
-		return nil, err
+		return err
+	}
+	defer repo.Close()
+
+	// if err := repo.Migrate(); err != nil {
+	// 	return err
+	// }
+
+	if err := repo.Ping(); err != nil {
+		return err
 	}
 
+	//
+	// Create the user service
+	//
 	userSrv := user.NewService(repo)
 
+	//
+	// Create the app
+	//
 	app := app.New(auth, userSrv)
 
 	mux := http.DefaultServeMux
@@ -35,9 +56,12 @@ func New(cfg *Config) (*Runner, error) {
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
 
+	//
+	//	Create the oauth handler
+	//
 	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, app)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	oauthHandler.Register(mux)
 
@@ -48,11 +72,9 @@ func New(cfg *Config) (*Runner, error) {
 		WriteTimeout: 8 * time.Second,
 	}
 
-	return &Runner{
+	r := &Runner{
 		httpServer: httpServer,
-	}, nil
-}
+	}
 
-func (r *Runner) Run() error {
 	return r.httpServer.ListenAndServe()
 }

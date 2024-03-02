@@ -6,10 +6,10 @@ type User struct {
 	// The user's prefered nickname
 	Nickname string `json:"nickname"`
 
+	Role Role `json:"role"`
+
 	// Through which provider the user is authenticated
 	Provider UserProvider `json:"providers"`
-
-	Role Role `json:"role"`
 }
 
 type Role string

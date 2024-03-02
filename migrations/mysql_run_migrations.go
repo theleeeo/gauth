@@ -33,15 +33,21 @@ func executeSQLFile(db *sql.DB, filePath string) error {
 }
 
 func load_env_vars() {
-	if v := os.Getenv("DB_USER"); v == "" {
+	if v := os.Getenv("DB_USER"); v != "" {
+		dbUser = v
+	} else {
 		log.Fatal("DB_USER environment variable is not set")
 	}
 
-	if v := os.Getenv("DB_PASSWORD"); v == "" {
+	if v := os.Getenv("DB_PASSWORD"); v != "" {
+		dbPassword = v
+	} else {
 		log.Println("DB_PASSWORD environment variable is not set, using empty password")
 	}
 
-	if v := os.Getenv("DB_NAME"); v == "" {
+	if v := os.Getenv("DB_NAME"); v != "" {
+		dbName = v
+	} else {
 		log.Fatal("DB_NAME environment variable is not set")
 	}
 
@@ -76,7 +82,7 @@ func main() {
 	}
 
 	migrationFiles := []string{
-		"user.sql",
+		"users.sql",
 	}
 
 	for _, file := range migrationFiles {

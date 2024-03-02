@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/theleeeo/thor/repo"
 )
 
 func GenerateState() (string, error) {
@@ -107,16 +109,37 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	user, err := provider.GetUser(code)
+	u, err := provider.GetUser(code)
 	if err != nil {
 		http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.app.CreateUser(r.Context(), u)
+	if err != nil {
+		if err == repo.ErrUserExists {
+			// User already exists. Get the user
+			user, err = h.app.GetUserByProviderID(r.Context(), u.Provider.UserID)
+			if err != nil {
+				http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	token, err := h.app.CreateToken(r.Context(), user)
+	if err != nil {
+		http.Error(w, fmt.Errorf("failed to create token: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 
 	cookie := &http.Cookie{
 		Name:     "thor_token",
 		Domain:   h.appUrl.Hostname(), // THIS Will have to change when redirects are used
-		Value:    user.Nickname,       // This should be the jwt
+		Value:    token,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
 		HttpOnly: true,

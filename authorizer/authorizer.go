@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	_ "github.com/golang-jwt/jwt/v5"
+	"github.com/theleeeo/thor/models"
 )
 
 type Authorizer struct {
@@ -48,12 +48,12 @@ func (a *Authorizer) Decode(token string) (*Claims, error) {
 	}, nil
 }
 
-func (a *Authorizer) CreateToken(userID string, role Role) (string, error) {
+func (a *Authorizer) CreateToken(user *models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"sub":  userID,
+			"sub":  user.ID,
 			"exp":  time.Now().Add(a.validDuration).Unix(),
-			"role": role,
+			"role": user.Role,
 		})
 
 	tokenString, err := token.SignedString(a.secret)
