@@ -8,6 +8,7 @@ import (
 	"github.com/theleeeo/thor/app"
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/entrypoints"
+	"github.com/theleeeo/thor/middlewares"
 	"github.com/theleeeo/thor/oauth"
 	"github.com/theleeeo/thor/repo"
 	"github.com/theleeeo/thor/user"
@@ -81,7 +82,7 @@ func Run(cfg *Config) error {
 
 	httpServer := &http.Server{
 		Addr:         cfg.Addr,
-		Handler:      mux,
+		Handler:      middlewares.Chain(mux, middlewares.ClaimsExtractor(auth.PublicKey())),
 		ReadTimeout:  4 * time.Second,
 		WriteTimeout: 8 * time.Second,
 	}

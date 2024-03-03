@@ -52,9 +52,9 @@ func (h *restHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	claims, err := sdk.ExtractClaims(r, h.app.PublicKey())
-	if err != nil {
-		respondError(w, err, http.StatusUnauthorized)
+	claims := sdk.ClaimFromCtx(r.Context())
+	if claims == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		return
 	}
 
