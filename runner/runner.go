@@ -62,11 +62,11 @@ func Run(cfg *Config) error {
 	//
 	// Create the app
 	//
-	app := app.New(auth, userSrv)
+	appImpl := app.New(auth, userSrv)
 
 	mux := http.DefaultServeMux
 
-	restAPI := entrypoints.NewRestHandler(app)
+	restAPI := entrypoints.NewRestHandler(appImpl)
 	restAPI.Register(mux)
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
@@ -74,7 +74,7 @@ func Run(cfg *Config) error {
 	//
 	//	Create the oauth handler
 	//
-	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, app)
+	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, appImpl)
 	if err != nil {
 		return err
 	}

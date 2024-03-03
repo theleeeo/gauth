@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/theleeeo/thor/app"
-	"github.com/theleeeo/thor/sdk"
 )
 
 type restHandler struct {
@@ -45,26 +44,27 @@ func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *restHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
-	//The path will be /user/{id}
 	id := r.URL.Path[len("/user/"):]
 	if id == "" {
 		http.Error(w, "missing id", http.StatusBadRequest)
 		return
 	}
 
-	claims := sdk.ClaimFromCtx(r.Context())
-	if claims == nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
-	}
-
-	if claims.UserID != id {
-		http.Error(w, "forbidden", http.StatusForbidden)
-		return
-	}
-
 	user, err := h.app.GetUserByID(r.Context(), id)
 	if err != nil {
+		if err.Error() == "not found" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if err.Error() == "forbidden" {
+			http.Error(w, "forbidden", http.StatusForbidden)
+			return
+		}
+		if err.Error() == "unauthorized" {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+
 		respondError(w, err, http.StatusInternalServerError)
 		return
 	}

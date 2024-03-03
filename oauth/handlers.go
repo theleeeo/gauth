@@ -7,7 +7,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/repo"
+	"github.com/theleeeo/thor/sdk"
 )
 
 func GenerateState() (string, error) {
@@ -110,11 +112,12 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	user, err := h.app.GetUserByProviderID(r.Context(), u.Provider.UserID)
+	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: authorizer.RoleAdmin})
+	user, err := h.app.GetUserByProviderID(ctx, u.Provider.UserID)
 	if err != nil {
 		if err == repo.ErrNotFound {
 			// User does not exist. Create the user
-			user, err = h.app.CreateUser(r.Context(), u)
+			user, err = h.app.CreateUser(ctx, u)
 			if err != nil {
 				http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
 				return
@@ -125,7 +128,7 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		}
 	}
 
-	token, err := h.app.CreateToken(r.Context(), user)
+	token, err := h.app.CreateToken(ctx, user)
 	if err != nil {
 		http.Error(w, fmt.Errorf("failed to create token: %w", err).Error(), http.StatusInternalServerError)
 		return

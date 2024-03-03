@@ -43,6 +43,8 @@ func ClaimsExtractor(publicKey []byte) Middleware {
 	}
 }
 
+// InternalErrorRedacter is a middleware that will redact internal error messages.
+// It will replace the response body with a generic message and an id and log the original message.
 func InternalErrorRedacter() Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +54,7 @@ func InternalErrorRedacter() Middleware {
 			if respCatcher.Code == http.StatusInternalServerError {
 				responseId := rand.Intn(1000000)
 
+				copyHeaders(w.Header(), respCatcher.Header())
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(fmt.Sprintf("internal error, id: %d", responseId)))
 
@@ -59,8 +62,15 @@ func InternalErrorRedacter() Middleware {
 				return
 			}
 
+			copyHeaders(w.Header(), respCatcher.Header())
 			w.WriteHeader(respCatcher.Code)
 			w.Write(respCatcher.Body.Bytes())
 		})
+	}
+}
+
+func copyHeaders(dst, src http.Header) {
+	for k, v := range src {
+		dst[k] = v
 	}
 }

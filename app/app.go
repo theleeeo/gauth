@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/models"
+	"github.com/theleeeo/thor/sdk"
 	"github.com/theleeeo/thor/user"
 )
 
@@ -47,6 +49,15 @@ func (a *App) WhoAmI(ctx context.Context, token string) (*models.User, error) {
 }
 
 func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) {
+	claims := sdk.ClaimFromCtx(ctx)
+	if claims == nil {
+		return nil, errors.New("unauthorized")
+	}
+
+	if claims.UserID != id {
+		return nil, errors.New("forbidden")
+	}
+
 	u, err := a.users.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -56,6 +67,15 @@ func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) 
 }
 
 func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error) {
+	claims := sdk.ClaimFromCtx(ctx)
+	if claims == nil {
+		return nil, errors.New("unauthorized")
+	}
+
+	if claims.Role != authorizer.RoleAdmin {
+		return nil, errors.New("forbidden")
+	}
+
 	u, err := a.users.GetByProviderID(ctx, providerID)
 	if err != nil {
 		return nil, err
