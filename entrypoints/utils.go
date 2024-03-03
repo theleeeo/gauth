@@ -17,16 +17,6 @@ func respond(w http.ResponseWriter, resp interface{}) {
 	}
 }
 
-type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-}
-
-type LoginResponse struct {
-	Token string `json:"token"`
-}
-
-type WhoAmIResponse struct {
-	UserID string `json:"userID"`
-	Role   string `json:"role"`
+func respondError(w http.ResponseWriter, err error, status int) {
+	http.Error(w, err.Error(), status)
 }

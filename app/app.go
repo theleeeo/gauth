@@ -28,6 +28,20 @@ func (a *App) DecodeToken(ctx context.Context, token string) (*authorizer.Claims
 	return a.auth.Decode(token)
 }
 
+func (a *App) WhoAmI(ctx context.Context, token string) (*models.User, error) {
+	t, err := a.auth.Decode(token)
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := a.GetUserByID(ctx, t.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	u, err := a.users.GetByID(ctx, id)
 	if err != nil {

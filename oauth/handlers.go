@@ -115,17 +115,17 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	user, err := h.app.CreateUser(r.Context(), u)
+	user, err := h.app.GetUserByProviderID(r.Context(), u.Provider.UserID)
 	if err != nil {
-		if err == repo.ErrUserExists {
-			// User already exists. Get the user
-			user, err = h.app.GetUserByProviderID(r.Context(), u.Provider.UserID)
+		if err == repo.ErrNotFound {
+			// User does not exist. Create the user
+			user, err = h.app.CreateUser(r.Context(), u)
 			if err != nil {
-				http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+				http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
 				return
 			}
 		} else {
-			http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
+			http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 	}
