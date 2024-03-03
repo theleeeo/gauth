@@ -20,6 +20,10 @@ func New(authSrv *authorizer.Authorizer, userSrv *user.Service) *App {
 	}
 }
 
+func (a *App) PublicKey() []byte {
+	return a.auth.PublicKey()
+}
+
 func (a *App) CreateToken(ctx context.Context, user *models.User) (string, error) {
 	return a.auth.CreateToken(user)
 }

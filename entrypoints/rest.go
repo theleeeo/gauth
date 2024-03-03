@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/theleeeo/thor/app"
+	"github.com/theleeeo/thor/sdk"
 )
 
 type restHandler struct {
@@ -17,8 +18,14 @@ func NewRestHandler(app *app.App) *restHandler {
 }
 
 func (h *restHandler) Register(mux *http.ServeMux) {
+	mux.HandleFunc("GET /public-key", h.PublicKey)
+
 	mux.HandleFunc("GET /whoami", h.WhoAmI)
 	mux.HandleFunc("GET /user/", h.GetUserByID)
+}
+
+func (h *restHandler) PublicKey(w http.ResponseWriter, r *http.Request) {
+	w.Write(h.app.PublicKey())
 }
 
 func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
@@ -42,6 +49,17 @@ func (h *restHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Path[len("/user/"):]
 	if id == "" {
 		http.Error(w, "missing id", http.StatusBadRequest)
+		return
+	}
+
+	claims, err := sdk.ExtractClaims(r, h.app.PublicKey())
+	if err != nil {
+		respondError(w, err, http.StatusUnauthorized)
+		return
+	}
+
+	if claims.UserID != id {
+		http.Error(w, "forbidden", http.StatusForbidden)
 		return
 	}
 

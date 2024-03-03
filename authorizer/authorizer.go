@@ -12,6 +12,7 @@ import (
 type Authorizer struct {
 	privateKey    crypto.PrivateKey
 	publicKey     crypto.PublicKey
+	rawPublicKey  []byte
 	validDuration time.Duration
 
 	parser *jwt.Parser
@@ -31,9 +32,14 @@ func New(privateKey, publicKey []byte, validDuration time.Duration) (*Authorizer
 	return &Authorizer{
 		privateKey:    priv,
 		publicKey:     pub,
+		rawPublicKey:  publicKey,
 		validDuration: validDuration,
 		parser:        jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodEdDSA.Alg()}), jwt.WithExpirationRequired()),
 	}, nil
+}
+
+func (a *Authorizer) PublicKey() []byte {
+	return a.rawPublicKey
 }
 
 func (a *Authorizer) Decode(token string) (*Claims, error) {
@@ -43,10 +49,6 @@ func (a *Authorizer) Decode(token string) (*Claims, error) {
 
 	if err != nil {
 		return nil, err
-	}
-
-	if !t.Valid {
-		return nil, fmt.Errorf("invalid token")
 	}
 
 	claims, ok := t.Claims.(jwt.MapClaims)
