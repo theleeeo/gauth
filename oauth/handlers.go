@@ -44,8 +44,6 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 		return
 	}
 
-	fmt.Println("loginnn-state: ", state)
-
 	redirectURL := fmt.Sprintf("%s/oauth/callback/%s/%s", h.appUrl.String(), provider.Type(), provider.Name())
 	loginURL := provider.BuildLoginUrl(state, redirectURL)
 	http.Redirect(w, r, loginURL, http.StatusFound)
@@ -70,9 +68,6 @@ func (h *OAuthHandler) validateState(r *http.Request, w http.ResponseWriter) (bo
 			return
 		}
 	}()
-
-	fmt.Println("session-state: ", session.Values["state"])
-	fmt.Println("callbac-state: ", state)
 
 	if session.Values["state"] == state {
 		return true, nil

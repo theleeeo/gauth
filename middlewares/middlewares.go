@@ -1,7 +1,11 @@
 package middlewares
 
 import (
+	"fmt"
+	"log"
+	"math/rand"
 	"net/http"
+	"net/http/httptest"
 
 	"github.com/theleeeo/thor/sdk"
 )
@@ -35,6 +39,28 @@ func ClaimsExtractor(publicKey []byte) Middleware {
 			}
 
 			h.ServeHTTP(w, r)
+		})
+	}
+}
+
+func InternalErrorRedacter() Middleware {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			respCatcher := httptest.NewRecorder()
+			h.ServeHTTP(respCatcher, r)
+
+			if respCatcher.Code == http.StatusInternalServerError {
+				responseId := rand.Intn(1000000)
+
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(fmt.Sprintf("internal error, id: %d", responseId)))
+
+				log.Printf("%d: internal error: %s", responseId, respCatcher.Body.String())
+				return
+			}
+
+			w.WriteHeader(respCatcher.Code)
+			w.Write(respCatcher.Body.Bytes())
 		})
 	}
 }

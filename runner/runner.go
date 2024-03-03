@@ -82,7 +82,7 @@ func Run(cfg *Config) error {
 
 	httpServer := &http.Server{
 		Addr:         cfg.Addr,
-		Handler:      middlewares.Chain(mux, middlewares.ClaimsExtractor(auth.PublicKey())),
+		Handler:      middlewares.Chain(mux, middlewares.InternalErrorRedacter(), middlewares.ClaimsExtractor(auth.PublicKey())),
 		ReadTimeout:  4 * time.Second,
 		WriteTimeout: 8 * time.Second,
 	}
