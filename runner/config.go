@@ -18,6 +18,9 @@ type Config struct {
 }
 
 type AuthConfig struct {
-	SecretKey     string        `yaml:"secret-key"`
+	// Path to the private key file
+	PrivateKey string `yaml:"private-key"`
+	// Path to the public key file
+	PublicKey     string        `yaml:"public-key"`
 	ValidDuration time.Duration `yaml:"valid-duration"`
 }

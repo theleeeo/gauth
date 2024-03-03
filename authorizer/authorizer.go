@@ -1,6 +1,7 @@
 package authorizer
 
 import (
+	"crypto"
 	"fmt"
 	"time"
 
@@ -9,23 +10,35 @@ import (
 )
 
 type Authorizer struct {
-	secret        []byte
+	privateKey    crypto.PrivateKey
+	publicKey     crypto.PublicKey
 	validDuration time.Duration
 
 	parser *jwt.Parser
 }
 
-func New(secret string, validDuration time.Duration) *Authorizer {
-	return &Authorizer{
-		secret:        []byte(secret),
-		validDuration: validDuration,
-		parser:        jwt.NewParser(jwt.WithValidMethods([]string{"HS256"}), jwt.WithExpirationRequired()),
+func New(privateKey, publicKey []byte, validDuration time.Duration) (*Authorizer, error) {
+	pub, err := jwt.ParseEdPublicKeyFromPEM(publicKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
+
+	priv, err := jwt.ParseEdPrivateKeyFromPEM(privateKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse private key: %w", err)
+	}
+
+	return &Authorizer{
+		privateKey:    priv,
+		publicKey:     pub,
+		validDuration: validDuration,
+		parser:        jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodEdDSA.Alg()}), jwt.WithExpirationRequired()),
+	}, nil
 }
 
 func (a *Authorizer) Decode(token string) (*Claims, error) {
 	t, err := a.parser.Parse(token, func(token *jwt.Token) (interface{}, error) {
-		return a.secret, nil
+		return a.publicKey, nil
 	})
 
 	if err != nil {
@@ -49,14 +62,14 @@ func (a *Authorizer) Decode(token string) (*Claims, error) {
 }
 
 func (a *Authorizer) CreateToken(user *models.User) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA,
 		jwt.MapClaims{
 			"sub":  user.ID,
 			"exp":  time.Now().Add(a.validDuration).Unix(),
 			"role": user.Role,
 		})
 
-	tokenString, err := token.SignedString(a.secret)
+	tokenString, err := token.SignedString(a.privateKey)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}

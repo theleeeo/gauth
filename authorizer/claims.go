@@ -16,7 +16,7 @@ type Claims struct {
 }
 
 func (c *Claims) GetAudience() (jwt.ClaimStrings, error) {
-	panic("unimplemented")
+	return nil, nil
 }
 
 func (c *Claims) GetExpirationTime() (*jwt.NumericDate, error) {
@@ -24,15 +24,15 @@ func (c *Claims) GetExpirationTime() (*jwt.NumericDate, error) {
 }
 
 func (c *Claims) GetIssuedAt() (*jwt.NumericDate, error) {
-	panic("unimplemented")
+	return nil, nil
 }
 
 func (c *Claims) GetIssuer() (string, error) {
-	panic("unimplemented")
+	return "", nil
 }
 
 func (c *Claims) GetNotBefore() (*jwt.NumericDate, error) {
-	panic("unimplemented")
+	return nil, nil
 }
 
 func (c *Claims) GetSubject() (string, error) {

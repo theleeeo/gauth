@@ -2,6 +2,7 @@ package runner
 
 import (
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/theleeeo/thor/app"
@@ -20,7 +21,20 @@ func Run(cfg *Config) error {
 	//
 	// Create the authorizer
 	//
-	auth := authorizer.New(cfg.AuthCfg.SecretKey, cfg.AuthCfg.ValidDuration)
+	privKey, err := os.ReadFile(cfg.AuthCfg.PrivateKey)
+	if err != nil {
+		return err
+	}
+
+	pubKey, err := os.ReadFile(cfg.AuthCfg.PublicKey)
+	if err != nil {
+		return err
+	}
+
+	auth, err := authorizer.New(privKey, pubKey, cfg.AuthCfg.ValidDuration)
+	if err != nil {
+		return err
+	}
 
 	//
 	// Create the repository

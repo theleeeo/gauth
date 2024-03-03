@@ -18,7 +18,7 @@ func NewRestHandler(app *app.App) *restHandler {
 
 func (h *restHandler) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /whoami", h.WhoAmI)
-	mux.HandleFunc("GET /user", h.GetUserByProviderID)
+	mux.HandleFunc("GET /user/", h.GetUserByID)
 }
 
 func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
@@ -37,12 +37,15 @@ func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
 	respond(w, user)
 }
 
-type IdReq struct {
-	ID string `json:"id"`
-}
+func (h *restHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	//The path will be /user/{id}
+	id := r.URL.Path[len("/user/"):]
+	if id == "" {
+		http.Error(w, "missing id", http.StatusBadRequest)
+		return
+	}
 
-func (h *restHandler) GetUserByProviderID(w http.ResponseWriter, r *http.Request) {
-	user, err := h.app.GetUserByProviderID(r.Context(), "5105280")
+	user, err := h.app.GetUserByID(r.Context(), id)
 	if err != nil {
 		respondError(w, err, http.StatusInternalServerError)
 		return
