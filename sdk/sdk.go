@@ -3,10 +3,10 @@ package sdk
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/theleeeo/thor/authorizer"
+	"github.com/theleeeo/thor/models"
 )
 
 type ClaimsContextKey string
@@ -29,18 +29,30 @@ func ExtractClaims(r *http.Request, publicKey []byte) (*authorizer.Claims, error
 		return nil, err
 	}
 
-	t, err := jwt.Parse(token.Value, func(token *jwt.Token) (interface{}, error) {
+	t, err := jwt.ParseWithClaims(token.Value, &authorizer.Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwt.ParseEdPublicKeyFromPEM(publicKey)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	claims := t.Claims.(jwt.MapClaims)
+	claims := t.Claims.(*authorizer.Claims)
 
-	return &authorizer.Claims{
-		UserID:     claims["sub"].(string),
-		Expiration: time.Unix(int64(claims["exp"].(float64)), 0),
-		Role:       authorizer.Role(claims["role"].(string)),
-	}, nil
+	return claims, nil
+}
+
+func UserIsRole(ctx context.Context, role models.Role) bool {
+	claims := ClaimFromCtx(ctx)
+	if claims == nil {
+		return false
+	}
+	return claims.Role == role
+}
+
+func UserIs(ctx context.Context, userID string) bool {
+	claims := ClaimFromCtx(ctx)
+	if claims == nil {
+		return false
+	}
+	return claims.UserID == userID
 }

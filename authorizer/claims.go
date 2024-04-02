@@ -4,15 +4,16 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/theleeeo/thor/models"
 )
 
 var _ jwt.Claims = &Claims{}
 
 type Claims struct {
 	// jwt.RegisteredClaims
-	UserID     string    `json:"sub"`
-	Expiration time.Time `json:"exp"`
-	Role       Role      `json:"role"`
+	UserID     string      `json:"sub"`
+	Expiration time.Time   `json:"exp"`
+	Role       models.Role `json:"role"`
 }
 
 func (c *Claims) GetAudience() (jwt.ClaimStrings, error) {
@@ -38,10 +39,3 @@ func (c *Claims) GetNotBefore() (*jwt.NumericDate, error) {
 func (c *Claims) GetSubject() (string, error) {
 	return c.UserID, nil
 }
-
-type Role string
-
-const (
-	RoleAdmin Role = "admin"
-	RoleUser  Role = "user"
-)

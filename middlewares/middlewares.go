@@ -31,13 +31,14 @@ func ClaimsExtractor(publicKey []byte) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, err := sdk.ExtractClaims(r, publicKey)
-			if err == nil {
-				// If there is no error, we will add the claims to the context
-				ctx := r.Context()
-				ctx = sdk.WithClaims(ctx, claims)
-				r = r.WithContext(ctx)
+			if err != nil {
+				http.Error(w, "missing or invalid token", http.StatusUnauthorized)
+				return
 			}
 
+			ctx := r.Context()
+			ctx = sdk.WithClaims(ctx, claims)
+			r = r.WithContext(ctx)
 			h.ServeHTTP(w, r)
 		})
 	}
@@ -58,7 +59,7 @@ func InternalErrorRedacter() Middleware {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(fmt.Sprintf("internal error, id: %d", responseId)))
 
-				log.Printf("%d: internal error: %s", responseId, respCatcher.Body.String())
+				log.Printf("%d: %s: internal error: %s", responseId, r.URL.Path, respCatcher.Body.String())
 				return
 			}
 

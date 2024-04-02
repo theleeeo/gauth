@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/theleeeo/thor/authorizer"
+	"github.com/theleeeo/thor/models"
 	"github.com/theleeeo/thor/repo"
 	"github.com/theleeeo/thor/sdk"
 )
@@ -112,7 +113,7 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: authorizer.RoleAdmin})
+	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: models.RoleAdmin})
 	user, err := h.app.GetUserByProviderID(ctx, u.Provider.UserID)
 	if err != nil {
 		if err == repo.ErrNotFound {

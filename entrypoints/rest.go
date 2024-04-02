@@ -1,6 +1,7 @@
 package entrypoints
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/theleeeo/thor/app"
@@ -28,6 +29,7 @@ func (h *restHandler) PublicKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("whoami")
 	token, err := r.Cookie("thor_token")
 	if err != nil {
 		http.Error(w, "missing token", http.StatusUnauthorized)

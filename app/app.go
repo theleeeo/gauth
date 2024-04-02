@@ -49,12 +49,7 @@ func (a *App) WhoAmI(ctx context.Context, token string) (*models.User, error) {
 }
 
 func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) {
-	claims := sdk.ClaimFromCtx(ctx)
-	if claims == nil {
-		return nil, errors.New("unauthorized")
-	}
-
-	if claims.UserID != id {
+	if !sdk.UserIsRole(ctx, models.RoleAdmin) && !sdk.UserIs(ctx, id) {
 		return nil, errors.New("forbidden")
 	}
 
@@ -67,12 +62,7 @@ func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) 
 }
 
 func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error) {
-	claims := sdk.ClaimFromCtx(ctx)
-	if claims == nil {
-		return nil, errors.New("unauthorized")
-	}
-
-	if claims.Role != authorizer.RoleAdmin {
+	if !sdk.UserIsRole(ctx, models.RoleAdmin) {
 		return nil, errors.New("forbidden")
 	}
 
@@ -85,6 +75,10 @@ func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (*mode
 }
 
 func (a *App) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
+	if !sdk.UserIsRole(ctx, models.RoleAdmin) {
+		return nil, errors.New("forbidden")
+	}
+
 	u, err := a.users.Create(ctx, user)
 	if err != nil {
 		return nil, err

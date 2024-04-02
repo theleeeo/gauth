@@ -43,7 +43,7 @@ func (a *Authorizer) PublicKey() []byte {
 }
 
 func (a *Authorizer) Decode(token string) (*Claims, error) {
-	t, err := a.parser.Parse(token, func(token *jwt.Token) (interface{}, error) {
+	t, err := a.parser.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return a.publicKey, nil
 	})
 
@@ -51,25 +51,28 @@ func (a *Authorizer) Decode(token string) (*Claims, error) {
 		return nil, err
 	}
 
-	claims, ok := t.Claims.(jwt.MapClaims)
+	claims, ok := t.Claims.(*Claims)
 	if !ok {
 		return nil, fmt.Errorf("invalid claims")
 	}
 
-	return &Claims{
-		UserID:     claims["sub"].(string),
-		Expiration: time.Unix(int64(claims["exp"].(float64)), 0),
-		Role:       Role(claims["role"].(string)),
-	}, nil
+	return claims, nil
+
+	// return &Claims{
+	// 	UserID:     claims["sub"].(string),
+	// 	Expiration: time.Unix(int64(claims["exp"].(float64)), 0),
+	// 	Role:       models.Role(claims["role"].(string)),
+	// }, nil
 }
 
 func (a *Authorizer) CreateToken(user *models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA,
-		jwt.MapClaims{
-			"sub":  user.ID,
-			"exp":  time.Now().Add(a.validDuration).Unix(),
-			"role": user.Role,
-		})
+		&Claims{
+			UserID:     user.ID,
+			Expiration: time.Now().Add(a.validDuration),
+			Role:       user.Role,
+		},
+	)
 
 	tokenString, err := token.SignedString(a.privateKey)
 	if err != nil {
