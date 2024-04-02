@@ -22,6 +22,23 @@ type Config struct {
 }
 
 func New(cfg *Config) (Repo, error) {
+	repo, err := createRepo(cfg)
+	if err == nil {
+		return repo, nil
+	}
+
+	// if err := repo.Migrate(); err != nil {
+	// 	return err
+	// }
+
+	if err := repo.Ping(); err != nil {
+		return nil, err
+	}
+
+	return nil, fmt.Errorf("no repo configuration found")
+}
+
+func createRepo(cfg *Config) (Repo, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("no repo configuration found")
 	}

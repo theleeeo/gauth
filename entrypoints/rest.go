@@ -18,10 +18,9 @@ func NewRestHandler(app *app.App) *restHandler {
 }
 
 func (h *restHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("GET /public-key", h.PublicKey)
-
-	mux.HandleFunc("GET /whoami", h.WhoAmI)
-	mux.HandleFunc("GET /user/", h.GetUserByID)
+	mux.HandleFunc("/public-key", h.PublicKey)
+	mux.HandleFunc("/whoami", h.WhoAmI)
+	mux.HandleFunc("/user/{id}", h.GetUserByID)
 }
 
 func (h *restHandler) PublicKey(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +45,7 @@ func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *restHandler) GetUserByID(w http.ResponseWriter, r *http.Request) {
-	id := r.URL.Path[len("/user/"):]
+	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, "missing id", http.StatusBadRequest)
 		return

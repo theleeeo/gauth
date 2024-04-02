@@ -27,6 +27,15 @@ func WithMiddleware(h http.Handler, m Middleware) http.Handler {
 	return m(h)
 }
 
+func PrefixStripper(prefix string) Middleware {
+	return func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			r.URL.Path = r.URL.Path[len(prefix):]
+			h.ServeHTTP(w, r)
+		})
+	}
+}
+
 func ClaimsExtractor(publicKey []byte) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

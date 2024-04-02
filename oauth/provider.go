@@ -49,10 +49,6 @@ func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
 	return h, nil
 }
 
-func (h *OAuthHandler) Register(mux *http.ServeMux) {
-	mux.Handle("/oauth/", h)
-}
-
 func (h *OAuthHandler) getProvider(path string) (Provider, error) {
 	for _, p := range h.providers {
 		if fmt.Sprintf("%s/%s", p.Type(), p.Name()) == path {
@@ -63,13 +59,16 @@ func (h *OAuthHandler) getProvider(path string) (Provider, error) {
 }
 
 func (h *OAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	path, ok := strings.CutPrefix(r.URL.Path, "/oauth/")
+	// Trim the leading slash
+	path := r.URL.Path[1:]
+
+	action, providerPath, ok := strings.Cut(path, "/")
 	if !ok {
 		http.NotFound(w, r)
 		return
 	}
 
-	switch action, providerPath, _ := strings.Cut(path, "/"); action {
+	switch action {
 	case "login":
 		h.serveLogin(w, r, providerPath)
 	case "callback":

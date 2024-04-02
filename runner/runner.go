@@ -46,14 +46,6 @@ func Run(cfg *Config) error {
 	}
 	defer repo.Close()
 
-	// if err := repo.Migrate(); err != nil {
-	// 	return err
-	// }
-
-	if err := repo.Ping(); err != nil {
-		return err
-	}
-
 	//
 	// Create the user service
 	//
@@ -64,10 +56,16 @@ func Run(cfg *Config) error {
 	//
 	appImpl := app.New(auth, userSrv)
 
-	mux := http.DefaultServeMux
+	rootMux := http.DefaultServeMux
 
+	//
+	// Create the rest handler
+	//
 	restAPI := entrypoints.NewRestHandler(appImpl)
-	restAPI.Register(mux)
+
+	apiMux := http.NewServeMux()
+	restAPI.Register(apiMux)
+	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey()), middlewares.PrefixStripper("/api")))
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
 
@@ -78,11 +76,11 @@ func Run(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	oauthHandler.Register(mux)
+	rootMux.Handle("/oauth/", middlewares.Chain(oauthHandler, middlewares.PrefixStripper("/oauth")))
 
 	httpServer := &http.Server{
 		Addr:         cfg.Addr,
-		Handler:      middlewares.Chain(mux, middlewares.InternalErrorRedacter(), middlewares.ClaimsExtractor(auth.PublicKey())),
+		Handler:      middlewares.Chain(rootMux, middlewares.InternalErrorRedacter()),
 		ReadTimeout:  4 * time.Second,
 		WriteTimeout: 8 * time.Second,
 	}
