@@ -3,6 +3,7 @@ package oauth
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -100,18 +101,34 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
+	var user *models.User
 	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: models.RoleAdmin})
-	user, err := h.app.GetUserByProviderID(ctx, u.Providers[0].UserID)
+	user, err = h.app.GetUserByProviderID(ctx, u.Providers[0].UserID)
 	if err != nil {
-		if err == repo.ErrNotFound {
+		if !errors.Is(err, repo.ErrNotFound) {
+			http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// User was not found, check if it exist through another provider
+		user, err = h.app.GetUserByEmail(ctx, u.Email)
+		if err != nil {
+			if !errors.Is(err, repo.ErrNotFound) {
+				http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+				return
+			}
+
 			// User does not exist. Create the user
 			user, err = h.app.CreateUser(ctx, u)
 			if err != nil {
 				http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
 				return
 			}
-		} else {
-			http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+		}
+
+		err = h.app.AddUserProvider(ctx, user.ID, u.Providers[0])
+		if err != nil {
+			http.Error(w, fmt.Errorf("failed to add user provider: %w", err).Error(), http.StatusInternalServerError)
 			return
 		}
 	}

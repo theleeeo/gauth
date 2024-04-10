@@ -27,7 +27,8 @@ func newGithub(cfg ProviderConfig) *githubHandler {
 }
 
 func (g *githubHandler) BuildLoginUrl(state, redirectURL string) string {
-	return fmt.Sprintf("%s?client_id=%s&state=%s&redirect_uri=%s", githubLoginEndpoint, g.clientID, state, redirectURL)
+	scopes := "user:email%20read:user"
+	return fmt.Sprintf("%s?client_id=%s&state=%s&redirect_uri=%s&scope=%s", githubLoginEndpoint, g.clientID, state, redirectURL, scopes)
 }
 
 func (g *githubHandler) Name() string {
@@ -57,6 +58,8 @@ func (g *githubHandler) GetUser(code string) (*models.User, error) {
 	var user = struct {
 		ID    int    `json:"id"`
 		Login string `json:"login"`
+		Name  string `json:"name"`
+		Email string `json:"email"`
 	}{}
 
 	if err := json.NewDecoder(res.Body).Decode(&user); err != nil {
@@ -64,7 +67,8 @@ func (g *githubHandler) GetUser(code string) (*models.User, error) {
 	}
 
 	return &models.User{
-		FirstName: user.Login,
+		FirstName: user.Name,
+		Email:     user.Email,
 		Providers: []models.UserProvider{
 			{
 				UserID: fmt.Sprintf("%d", user.ID),

@@ -7,6 +7,7 @@ import (
 
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/models"
+	"github.com/theleeeo/thor/repo"
 	"github.com/theleeeo/thor/sdk"
 	"github.com/theleeeo/thor/user"
 )
@@ -49,12 +50,29 @@ func (a *App) WhoAmI(ctx context.Context, token string) (*models.User, error) {
 	return user, nil
 }
 
+func (a *App) AddUserProvider(ctx context.Context, userID string, provider models.UserProvider) error {
+	return a.users.AddProvider(ctx, userID, provider)
+}
+
 func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) {
 	if !sdk.UserIsRole(ctx, models.RoleAdmin) && !sdk.UserIs(ctx, id) {
 		return nil, errors.New("forbidden")
 	}
 
-	u, err := a.users.GetByID(ctx, id)
+	u, err := a.users.Get(ctx, repo.GetUserParams{ID: &id})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user: %w", err)
+	}
+
+	return &u.User, nil
+}
+
+func (a *App) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+	if !sdk.UserIsRole(ctx, models.RoleAdmin) {
+		return nil, errors.New("forbidden")
+	}
+
+	u, err := a.users.Get(ctx, repo.GetUserParams{Email: &email})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}

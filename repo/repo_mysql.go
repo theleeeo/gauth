@@ -171,3 +171,16 @@ func (r *mySqlRepo) GetUser(ctx context.Context, params GetUserParams) (*models.
 
 	return &user, nil
 }
+
+func (r *mySqlRepo) AddProvider(ctx context.Context, userID string, provider models.UserProvider) error {
+	query := "INSERT INTO user_providers (user_id, provider, provider_id) VALUES(?, ?, ?)"
+	_, err := r.db.ExecContext(ctx, query, userID, provider.Type, provider.UserID)
+	if err != nil {
+		if e, ok := err.(*mysql.MySQLError); ok && (e.Number == mysqlErrDuplicateEntry || e.Number == mysqlErrDuplicateKey) {
+			return ErrAlreadyExists
+		}
+		return err
+	}
+
+	return nil
+}

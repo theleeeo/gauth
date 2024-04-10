@@ -15,6 +15,7 @@ type Repo interface {
 	CreateUser(ctx context.Context, user *models.User) error
 	GetUser(ctx context.Context, params GetUserParams) (*models.User, error)
 	GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error)
+	AddProvider(ctx context.Context, userID string, provider models.UserProvider) error
 }
 
 type GetUserParams struct {

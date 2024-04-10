@@ -32,8 +32,8 @@ func (s *Service) Create(ctx context.Context, user *models.User) (*User, error) 
 	}, nil
 }
 
-func (s *Service) GetByID(ctx context.Context, id string) (*User, error) {
-	u, err := s.repo.GetUser(ctx, repo.GetUserParams{ID: &id})
+func (s *Service) Get(ctx context.Context, params repo.GetUserParams) (*User, error) {
+	u, err := s.repo.GetUser(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -52,4 +52,8 @@ func (s *Service) GetByProviderID(ctx context.Context, providerID string) (*User
 	return &User{
 		User: *u,
 	}, nil
+}
+
+func (s *Service) AddProvider(ctx context.Context, userID string, provider models.UserProvider) error {
+	return s.repo.AddProvider(ctx, userID, provider)
 }

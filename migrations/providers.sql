@@ -4,5 +4,5 @@ CREATE TABLE IF NOT EXISTS user_providers (
 `provider` VARCHAR(10) NOT NULL,
 -- The id of the user with the provider
 `provider_id` VARCHAR(50) NOT NULL UNIQUE,
-FOREIGN KEY (`user_id`) REFERENCES `users`(`id`)
+FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 );
