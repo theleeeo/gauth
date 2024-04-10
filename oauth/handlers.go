@@ -29,11 +29,9 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 		return
 	}
 
-	session, err := h.store.New(r, h.sessionName)
-	if err != nil {
-		http.Error(w, fmt.Errorf("failed to create session: %w", err).Error(), http.StatusInternalServerError)
-		return
-	}
+	// The error does not matter as a new session will be created either way.
+	// We want to discard any old sessions anyways
+	session, _ := h.store.New(r, h.sessionName)
 
 	state, err := GenerateState()
 	if err != nil {
