@@ -67,8 +67,8 @@ func (g *githubHandler) GetUser(code string) (*models.User, error) {
 	}
 
 	return &models.User{
-		FirstName: user.Name,
-		Email:     user.Email,
+		Name:  user.Name,
+		Email: user.Email,
 		Providers: []models.UserProvider{
 			{
 				UserID: fmt.Sprintf("%d", user.ID),

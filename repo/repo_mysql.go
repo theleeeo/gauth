@@ -54,8 +54,8 @@ func (r *mySqlRepo) CreateUser(ctx context.Context, user *models.User) error {
 		return err
 	}
 
-	userQuery := "INSERT INTO users (id, first_name, last_name, email, role) VALUES(?, ?, ?, ?, ?)"
-	_, err = tx.ExecContext(ctx, userQuery, user.ID, user.FirstName, user.LastName, user.Email, user.Role)
+	userQuery := "INSERT INTO users (id, name, email, role) VALUES(?, ?, ?, ?)"
+	_, err = tx.ExecContext(ctx, userQuery, user.ID, user.Name, user.Email, user.Role)
 	if err != nil {
 		tx.Rollback()
 		if e, ok := err.(*mysql.MySQLError); ok && (e.Number == mysqlErrDuplicateEntry || e.Number == mysqlErrDuplicateKey) {
@@ -114,14 +114,14 @@ func (r *mySqlRepo) getProvidersOfUser(ctx context.Context, userID string) ([]mo
 }
 
 func (r *mySqlRepo) GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error) {
-	query := `SELECT u.id, u.first_name, u.last_name, u.email, u.role
+	query := `SELECT u.id, u.name, u.email, u.role
               FROM users u 
               INNER JOIN user_providers up ON u.id = up.user_id 
               WHERE up.provider_id = ?`
 	row := r.db.QueryRowContext(ctx, query, providerID)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Role)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Role)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound
@@ -139,7 +139,7 @@ func (r *mySqlRepo) GetUserByProviderID(ctx context.Context, providerID string) 
 }
 
 func (r *mySqlRepo) GetUser(ctx context.Context, params GetUserParams) (*models.User, error) {
-	query := "SELECT id, first_name, last_name, email, role FROM users WHERE"
+	query := "SELECT id, name, email, role FROM users WHERE"
 	var args []interface{}
 
 	if params.ID != nil {
@@ -155,7 +155,7 @@ func (r *mySqlRepo) GetUser(ctx context.Context, params GetUserParams) (*models.
 	row := r.db.QueryRowContext(ctx, query, args...)
 
 	var user models.User
-	err := row.Scan(&user.ID, &user.FirstName, &user.LastName, &user.Email, &user.Role)
+	err := row.Scan(&user.ID, &user.Name, &user.Email, &user.Role)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, ErrNotFound

@@ -41,7 +41,7 @@
             // Once we get the response (which has many fields)
             // Documented here: https://developer.github.com/v3/users/#get-the-authenticated-user
             // Write "Welcome <user name>" to the documents body
-            const nameNode = document.createTextNode(`Welcome, ${res.first_name} ${res.last_name}`);
+            const nameNode = document.createTextNode(`Welcome, ${res.name}`);
             document.body.appendChild(nameNode);
         });
 </script>

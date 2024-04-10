@@ -68,9 +68,8 @@ func (g *googleHandler) GetUser(code string) (*models.User, error) {
 	}
 
 	return &models.User{
-		FirstName: claims.Given_name,
-		LastName:  claims.Family_name,
-		Email:     claims.Email,
+		Name:  claims.Given_name + " " + claims.Family_name,
+		Email: claims.Email,
 		Providers: []models.UserProvider{
 			{
 				UserID: claims.Subject,
