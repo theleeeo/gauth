@@ -50,31 +50,25 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 	http.Redirect(w, r, loginURL, http.StatusFound)
 }
 
-func (h *OAuthHandler) validateState(r *http.Request, w http.ResponseWriter) (bool, error) {
+func (h *OAuthHandler) validateState(r *http.Request, w http.ResponseWriter) (isValid bool) {
 	state := r.FormValue("state")
 	if state == "" {
-		return false, nil
+		return false
 	}
 
-	session, err := h.store.Get(r, h.sessionName)
+	session, err := h.store.New(r, h.sessionName)
 	if err != nil {
-		return false, fmt.Errorf("failed to get session: %w", err)
+		return false
+	}
+	isValid = session.Values["state"] == state
+
+	// Clear the state. It is not needed anymore after the oauth flow is complete.
+	session.Values["state"] = nil
+	if err := session.Save(r, w); err != nil {
+		log.Printf("failed to remove state: %v", err)
 	}
 
-	defer func() {
-		// Clear the state. It is not needed anymore after the oauth flow is complete.
-		session.Values["state"] = nil
-		if err := session.Save(r, w); err != nil {
-			log.Printf("failed to remove state: %v", err)
-			return
-		}
-	}()
-
-	if session.Values["state"] == state {
-		return true, nil
-	}
-
-	return false, nil
+	return isValid
 }
 
 func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, providerID string) {
@@ -89,12 +83,7 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	ok, err := h.validateState(r, w)
-	if err != nil {
-		http.Error(w, fmt.Errorf("failed to validate state: %w", err).Error(), http.StatusInternalServerError)
-		return
-	}
-	if !ok {
+	if !h.validateState(r, w) {
 		http.Error(w, "state mismatch", http.StatusBadRequest)
 		return
 	}

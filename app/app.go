@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/models"
@@ -42,7 +43,7 @@ func (a *App) WhoAmI(ctx context.Context, token string) (*models.User, error) {
 
 	user, err := a.GetUserByID(ctx, t.UserID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	return user, nil
@@ -55,7 +56,7 @@ func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) 
 
 	u, err := a.users.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	return &u.User, nil
@@ -68,7 +69,7 @@ func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (*mode
 
 	u, err := a.users.GetByProviderID(ctx, providerID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	return &u.User, nil
@@ -81,7 +82,7 @@ func (a *App) CreateUser(ctx context.Context, user *models.User) (*models.User, 
 
 	u, err := a.users.Create(ctx, user)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	return &u.User, nil
