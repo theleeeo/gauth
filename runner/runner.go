@@ -61,11 +61,11 @@ func Run(cfg *Config) error {
 	//
 	// Create the rest handler
 	//
-	restAPI := entrypoints.NewRestHandler(appImpl)
+	restAPI := entrypoints.NewRestHandler(appImpl, cfg.OAuthConfig.CookieName)
 
 	apiMux := http.NewServeMux()
 	restAPI.Register(apiMux)
-	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey()), middlewares.PrefixStripper("/api")))
+	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey(), cfg.OAuthConfig.CookieName), middlewares.PrefixStripper("/api")))
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
 
@@ -76,7 +76,7 @@ func Run(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	rootMux.Handle("/oauth/", middlewares.Chain(oauthHandler, middlewares.PrefixStripper("/oauth")))
+	oauthHandler.Register(rootMux)
 
 	httpServer := &http.Server{
 		Addr:         cfg.Addr,

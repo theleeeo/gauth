@@ -29,7 +29,7 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 		return
 	}
 
-	session, err := h.store.New(r, "thor_session")
+	session, err := h.store.New(r, h.sessionName)
 	if err != nil {
 		http.Error(w, fmt.Errorf("failed to create session: %w", err).Error(), http.StatusInternalServerError)
 		return
@@ -58,7 +58,7 @@ func (h *OAuthHandler) validateState(r *http.Request, w http.ResponseWriter) (bo
 		return false, nil
 	}
 
-	session, err := h.store.Get(r, "thor_session")
+	session, err := h.store.Get(r, h.sessionName)
 	if err != nil {
 		return false, fmt.Errorf("failed to get session: %w", err)
 	}
@@ -109,12 +109,12 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 
 	u, err := provider.GetUser(code)
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
+		http.Error(w, fmt.Errorf("failed to get user from provider: %w", err).Error(), http.StatusInternalServerError)
 		return
 	}
 
 	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: models.RoleAdmin})
-	user, err := h.app.GetUserByProviderID(ctx, u.Provider.UserID)
+	user, err := h.app.GetUserByProviderID(ctx, u.Providers[0].UserID)
 	if err != nil {
 		if err == repo.ErrNotFound {
 			// User does not exist. Create the user
@@ -136,8 +136,8 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	}
 
 	cookie := &http.Cookie{
-		Name:     "thor_token",
-		Domain:   h.appUrl.Hostname(), // THIS Will have to change when redirects are used
+		Name:     h.cookieName,
+		Domain:   h.appUrl.Hostname(), // TODO: THIS Will have to change when redirects are used
 		Value:    token,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,

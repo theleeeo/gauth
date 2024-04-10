@@ -9,8 +9,7 @@ import (
 )
 
 const (
-	cookieName     = "thor_token"
-	githubLoginUrl = "https://github.com/login/oauth/authorize?client_id=%s&state=%s&redirect_uri=%s"
+	githubLoginEndpoint = "https://github.com/login/oauth/authorize"
 )
 
 type githubHandler struct {
@@ -27,49 +26,8 @@ func newGithub(cfg ProviderConfig) *githubHandler {
 	}
 }
 
-func extractToken(r *http.Request) string {
-	cookie, err := r.Cookie(cookieName)
-	if err != nil {
-		return ""
-	}
-
-	return cookie.Value
-}
-
-func (g *githubHandler) Register(mux *http.ServeMux) {
-	mux.HandleFunc(fmt.Sprintf("GET /oauth/whoami/github/%s", g.name), func(w http.ResponseWriter, r *http.Request) {
-		req, _ := http.NewRequest("GET", "https://api.github.com/user", nil)
-		req.Header.Set("Authorization", fmt.Sprintf("token %s", extractToken(r)))
-		req.Header.Add("Accept", "application/vnd.github.v3+json")
-
-		res, err := http.DefaultClient.Do(req)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		defer res.Body.Close()
-
-		fmt.Println("status: ", res.Status)
-
-		var user = struct {
-			Login      string `json:"login"`
-			ID         int    `json:"id"`
-			Avatar_url string `json:"avatar_url"`
-		}{}
-
-		if err := json.NewDecoder(res.Body).Decode(&user); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(user)
-	})
-}
-
 func (g *githubHandler) BuildLoginUrl(state, redirectURL string) string {
-	return fmt.Sprintf(githubLoginUrl, g.clientID, state, redirectURL)
+	return fmt.Sprintf("%s?client_id=%s&state=%s&redirect_uri=%s", githubLoginEndpoint, g.clientID, state, redirectURL)
 }
 
 func (g *githubHandler) Name() string {
@@ -106,10 +64,12 @@ func (g *githubHandler) GetUser(code string) (*models.User, error) {
 	}
 
 	return &models.User{
-		Nickname: user.Login,
-		Provider: models.UserProvider{
-			UserID: fmt.Sprintf("%d", user.ID),
-			Type:   models.UserProviderTypeGithub,
+		FirstName: user.Login,
+		Providers: []models.UserProvider{
+			{
+				UserID: fmt.Sprintf("%d", user.ID),
+				Type:   models.UserProviderTypeGithub,
+			},
 		},
 	}, nil
 }

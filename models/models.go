@@ -2,14 +2,16 @@ package models
 
 type User struct {
 	// The user's ID in the system
-	ID string `json:"id"`
-	// The user's prefered nickname
-	Nickname string `json:"nickname"`
+	ID        string `json:"id"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	// The user's email
+	Email string `json:"email"`
 
 	Role Role `json:"role"`
 
-	// Through which provider the user is authenticated
-	Provider UserProvider `json:"providers"`
+	// Through which providers the user is authenticated
+	Providers []UserProvider `json:"providers"`
 }
 
 type Role string
@@ -23,6 +25,7 @@ type UserProviderType string
 
 const (
 	UserProviderTypeGithub UserProviderType = "github"
+	UserProviderTypeGoogle UserProviderType = "google"
 )
 
 type UserProvider struct {

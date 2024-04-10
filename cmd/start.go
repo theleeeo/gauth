@@ -49,7 +49,13 @@ var startCmd = &cobra.Command{
 		}
 
 		fmt.Println("Config:", cfg)
+		fmt.Println("OauthCfg:", cfg.OAuthConfig)
 
-		return runner.Run(cfg)
+		if err := runner.Run(cfg); err != nil {
+			log.Println(err)
+			return nil
+		}
+
+		return nil
 	},
 }

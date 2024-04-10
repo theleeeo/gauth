@@ -23,8 +23,8 @@ func WithClaims(ctx context.Context, claims *authorizer.Claims) context.Context 
 	return context.WithValue(ctx, ClaimsContextKey("claims"), claims)
 }
 
-func ExtractClaims(r *http.Request, publicKey []byte) (*authorizer.Claims, error) {
-	token, err := r.Cookie("thor_token")
+func ExtractClaims(r *http.Request, publicKey []byte, cookieName string) (*authorizer.Claims, error) {
+	token, err := r.Cookie(cookieName)
 	if err != nil {
 		return nil, err
 	}

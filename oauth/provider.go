@@ -19,10 +19,12 @@ type Provider interface {
 }
 
 type OAuthHandler struct {
-	appUrl    *url.URL
-	providers []Provider
-	store     *sessions.CookieStore
-	app       *app.App
+	appUrl      *url.URL
+	providers   []Provider
+	store       *sessions.CookieStore
+	app         *app.App
+	cookieName  string
+	sessionName string
 }
 
 func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
@@ -32,21 +34,29 @@ func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
 	}
 
 	h := &OAuthHandler{
-		appUrl: appUrl,
-		app:    app,
-		store:  sessions.NewCookieStore([]byte(cfg.CookieSecret)),
+		appUrl:      appUrl,
+		app:         app,
+		store:       sessions.NewCookieStore([]byte(cfg.CookieSecret)),
+		cookieName:  cfg.CookieName,
+		sessionName: cfg.SessionName,
 	}
 
 	for _, providerCfg := range cfg.Providers {
 		switch providerCfg.Type {
 		case GithubProviderType:
 			h.providers = append(h.providers, newGithub(providerCfg))
+		case GoogleProviderType:
+			h.providers = append(h.providers, newGoogle(providerCfg, cfg.AppURL))
 		default:
 			return nil, fmt.Errorf("unknown provider type: %s", providerCfg.Type)
 		}
 	}
 
 	return h, nil
+}
+
+func (h *OAuthHandler) Register(mux *http.ServeMux) {
+	mux.Handle("/oauth/", h)
 }
 
 func (h *OAuthHandler) getProvider(path string) (Provider, error) {
@@ -59,8 +69,7 @@ func (h *OAuthHandler) getProvider(path string) (Provider, error) {
 }
 
 func (h *OAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Trim the leading slash
-	path := r.URL.Path[1:]
+	path := strings.TrimPrefix(r.URL.Path, "/oauth/")
 
 	action, providerPath, ok := strings.Cut(path, "/")
 	if !ok {

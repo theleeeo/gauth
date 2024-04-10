@@ -1,19 +1,20 @@
 package entrypoints
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/theleeeo/thor/app"
 )
 
 type restHandler struct {
-	app *app.App
+	app        *app.App
+	cookieName string
 }
 
-func NewRestHandler(app *app.App) *restHandler {
+func NewRestHandler(app *app.App, cookieName string) *restHandler {
 	return &restHandler{
-		app: app,
+		app:        app,
+		cookieName: cookieName,
 	}
 }
 
@@ -28,8 +29,7 @@ func (h *restHandler) PublicKey(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *restHandler) WhoAmI(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("whoami")
-	token, err := r.Cookie("thor_token")
+	token, err := r.Cookie(h.cookieName)
 	if err != nil {
 		http.Error(w, "missing token", http.StatusUnauthorized)
 		return

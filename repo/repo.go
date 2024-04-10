@@ -13,8 +13,13 @@ type Repo interface {
 	Close() error
 	Ping() error
 	CreateUser(ctx context.Context, user *models.User) error
-	GetUserByID(ctx context.Context, id string) (*models.User, error)
+	GetUser(ctx context.Context, params GetUserParams) (*models.User, error)
 	GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error)
+}
+
+type GetUserParams struct {
+	Email *string
+	ID    *string
 }
 
 type Config struct {
@@ -23,8 +28,8 @@ type Config struct {
 
 func New(cfg *Config) (Repo, error) {
 	repo, err := createRepo(cfg)
-	if err == nil {
-		return repo, nil
+	if err != nil {
+		return nil, fmt.Errorf("create repo failed: %w", err)
 	}
 
 	// if err := repo.Migrate(); err != nil {
@@ -32,10 +37,10 @@ func New(cfg *Config) (Repo, error) {
 	// }
 
 	if err := repo.Ping(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("repo ping failed: %w", err)
 	}
 
-	return nil, fmt.Errorf("no repo configuration found")
+	return repo, nil
 }
 
 func createRepo(cfg *Config) (Repo, error) {

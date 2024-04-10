@@ -33,7 +33,7 @@ func (s *Service) Create(ctx context.Context, user *models.User) (*User, error) 
 }
 
 func (s *Service) GetByID(ctx context.Context, id string) (*User, error) {
-	u, err := s.repo.GetUserByID(ctx, id)
+	u, err := s.repo.GetUser(ctx, repo.GetUserParams{ID: &id})
 	if err != nil {
 		return nil, err
 	}

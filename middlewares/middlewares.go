@@ -36,10 +36,10 @@ func PrefixStripper(prefix string) Middleware {
 	}
 }
 
-func ClaimsExtractor(publicKey []byte) Middleware {
+func ClaimsExtractor(publicKey []byte, cookieName string) Middleware {
 	return func(h http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			claims, err := sdk.ExtractClaims(r, publicKey)
+			claims, err := sdk.ExtractClaims(r, publicKey, cookieName)
 			if err != nil {
 				http.Error(w, "missing or invalid token", http.StatusUnauthorized)
 				return
