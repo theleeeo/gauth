@@ -64,7 +64,7 @@ func (a *App) GetUserByID(ctx context.Context, id string) (*models.User, error) 
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return &u.User, nil
+	return u, nil
 }
 
 func (a *App) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
@@ -77,7 +77,7 @@ func (a *App) GetUserByEmail(ctx context.Context, email string) (*models.User, e
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return &u.User, nil
+	return u, nil
 }
 
 func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (*models.User, error) {
@@ -90,7 +90,7 @@ func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (*mode
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
-	return &u.User, nil
+	return u, nil
 }
 
 func (a *App) CreateUser(ctx context.Context, user *models.User) (*models.User, error) {
@@ -103,5 +103,5 @@ func (a *App) CreateUser(ctx context.Context, user *models.User) (*models.User, 
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return &u.User, nil
+	return u, nil
 }

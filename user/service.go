@@ -18,40 +18,23 @@ func NewService(repo repo.Repo) *Service {
 	}
 }
 
-func (s *Service) Create(ctx context.Context, user *models.User) (*User, error) {
+func (s *Service) Create(ctx context.Context, user *models.User) (*models.User, error) {
 	user.ID = uuid.NewString()
 	user.Role = "user"
 
-	err := s.repo.CreateUser(ctx, user)
-	if err != nil {
+	if err := s.repo.CreateUser(ctx, user); err != nil {
 		return nil, err
 	}
 
-	return &User{
-		User: *user,
-	}, nil
+	return user, nil
 }
 
-func (s *Service) Get(ctx context.Context, params repo.GetUserParams) (*User, error) {
-	u, err := s.repo.GetUser(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-
-	return &User{
-		User: *u,
-	}, nil
+func (s *Service) Get(ctx context.Context, params repo.GetUserParams) (*models.User, error) {
+	return s.repo.GetUser(ctx, params)
 }
 
-func (s *Service) GetByProviderID(ctx context.Context, providerID string) (*User, error) {
-	u, err := s.repo.GetUserByProviderID(ctx, providerID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &User{
-		User: *u,
-	}, nil
+func (s *Service) GetByProviderID(ctx context.Context, providerID string) (*models.User, error) {
+	return s.repo.GetUserByProviderID(ctx, providerID)
 }
 
 func (s *Service) AddProvider(ctx context.Context, userID string, provider models.UserProvider) error {
