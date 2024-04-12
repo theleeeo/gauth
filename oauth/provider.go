@@ -19,12 +19,16 @@ type Provider interface {
 }
 
 type OAuthHandler struct {
+	app   *app.App
+	store *sessions.CookieStore
+
+	providers []Provider
+
 	appUrl      *url.URL
-	providers   []Provider
-	store       *sessions.CookieStore
-	app         *app.App
 	cookieName  string
 	sessionName string
+	// What hosts are allowed to return to after login
+	allowedReturns []string
 }
 
 func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
@@ -34,11 +38,12 @@ func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
 	}
 
 	h := &OAuthHandler{
-		appUrl:      appUrl,
-		app:         app,
-		store:       sessions.NewCookieStore([]byte(cfg.CookieSecret)),
-		cookieName:  cfg.CookieName,
-		sessionName: cfg.SessionName,
+		app:            app,
+		store:          sessions.NewCookieStore([]byte(cfg.CookieSecret)),
+		appUrl:         appUrl,
+		cookieName:     cfg.CookieName,
+		sessionName:    cfg.SessionName,
+		allowedReturns: cfg.AllowedReturns,
 	}
 
 	for _, providerCfg := range cfg.Providers {

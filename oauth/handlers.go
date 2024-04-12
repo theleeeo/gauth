@@ -5,8 +5,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
+	"net/url"
+	"slices"
 
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/models"
@@ -46,30 +47,35 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 		return
 	}
 
+	returnTo := r.FormValue("return")
+	if returnTo != "" {
+		returnURL, err := url.Parse(returnTo)
+		if err != nil {
+			http.Error(w, fmt.Errorf("failed to parse return url: %w", err).Error(), http.StatusBadRequest)
+			return
+		}
+
+		if returnURL.Scheme == "" {
+			http.Error(w, "invalid return url: scheme is missing", http.StatusBadRequest)
+			return
+		}
+
+		if !slices.Contains(h.allowedReturns, returnURL.Host) {
+			http.Error(w, "invalid return url: host is not allowed", http.StatusBadRequest)
+			return
+		}
+
+		session.Values["return"] = returnTo
+		if err := session.Save(r, w); err != nil {
+			http.Error(w, fmt.Errorf("failed to save the return url: %w", err).Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
 	redirectURL := fmt.Sprintf("%s/oauth/callback/%s/%s", h.appUrl.String(), provider.Type(), provider.Name())
+
 	loginURL := provider.BuildLoginUrl(state, redirectURL)
 	http.Redirect(w, r, loginURL, http.StatusFound)
-}
-
-func (h *OAuthHandler) validateState(r *http.Request, w http.ResponseWriter) (isValid bool) {
-	state := r.FormValue("state")
-	if state == "" {
-		return false
-	}
-
-	session, err := h.store.New(r, h.sessionName)
-	if err != nil {
-		return false
-	}
-	isValid = session.Values["state"] == state
-
-	// Clear the state. It is not needed anymore after the oauth flow is complete.
-	session.Values["state"] = nil
-	if err := session.Save(r, w); err != nil {
-		log.Printf("failed to remove state: %v", err)
-	}
-
-	return isValid
 }
 
 func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, providerID string) {
@@ -84,7 +90,19 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return
 	}
 
-	if !h.validateState(r, w) {
+	state := r.FormValue("state")
+	if state == "" {
+		http.Error(w, "state not found", http.StatusBadRequest)
+		return
+	}
+
+	session, err := h.store.New(r, h.sessionName)
+	if err != nil {
+		http.Error(w, fmt.Errorf("failed to get session: %w", err).Error(), http.StatusBadRequest)
+		return
+	}
+
+	if session.Values["state"] != state {
 		http.Error(w, "state mismatch", http.StatusBadRequest)
 		return
 	}
@@ -124,12 +142,12 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 				http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
 				return
 			}
-		}
-
-		err = h.app.AddUserProvider(ctx, user.ID, u.Providers[0])
-		if err != nil {
-			http.Error(w, fmt.Errorf("failed to add user provider: %w", err).Error(), http.StatusInternalServerError)
-			return
+		} else {
+			err = h.app.AddUserProvider(ctx, user.ID, u.Providers[0])
+			if err != nil {
+				http.Error(w, fmt.Errorf("failed to add user provider: %w", err).Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 	}
 
@@ -149,7 +167,13 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		Secure:   !(h.appUrl.Scheme == "http"), // If the app url is http, then the cookie is not secure. Default to secure in all other cases.
 	}
 
+	returnTo := session.Values["return"]
+	if returnTo == nil {
+		returnTo = "/welcome.html"
+	}
+
 	http.SetCookie(w, cookie)
-	w.Header().Set("Location", "/welcome.html")
+	fmt.Println("Redirecting to:", returnTo.(string))
+	w.Header().Set("Location", returnTo.(string))
 	w.WriteHeader(http.StatusFound)
 }
