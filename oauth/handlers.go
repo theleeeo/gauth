@@ -10,6 +10,7 @@ import (
 	"slices"
 
 	"github.com/theleeeo/thor/authorizer"
+	"github.com/theleeeo/thor/lerror"
 	"github.com/theleeeo/thor/models"
 	"github.com/theleeeo/thor/repo"
 	"github.com/theleeeo/thor/sdk"
@@ -24,11 +25,10 @@ func GenerateState() (string, error) {
 	return state, nil
 }
 
-func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, providerID string) {
+func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, providerID string) error {
 	provider, err := h.getProvider(providerID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return lerror.Wrap(err, "failed to get provider", http.StatusBadRequest)
 	}
 
 	// The error does not matter as a new session will be created either way.
@@ -37,38 +37,23 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 
 	state, err := GenerateState()
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to generate a state: %w", err).Error(), http.StatusInternalServerError)
-		return
+		return lerror.Wrap(err, "failed to generate a state", http.StatusInternalServerError)
 	}
 
 	session.Values["state"] = state
 	if err := session.Save(r, w); err != nil {
-		http.Error(w, fmt.Errorf("failed to save the state: %w", err).Error(), http.StatusInternalServerError)
-		return
+		return lerror.Wrap(err, "failed to save the state", http.StatusInternalServerError)
 	}
 
-	returnTo := r.FormValue("return")
+	returnTo, err := h.parseReturnTo(r)
+	if err != nil {
+		return err
+	}
+
 	if returnTo != "" {
-		returnURL, err := url.Parse(returnTo)
-		if err != nil {
-			http.Error(w, fmt.Errorf("failed to parse return url: %w", err).Error(), http.StatusBadRequest)
-			return
-		}
-
-		if returnURL.Scheme == "" {
-			http.Error(w, "invalid return url: scheme is missing", http.StatusBadRequest)
-			return
-		}
-
-		if !slices.Contains(h.allowedReturns, returnURL.Host) {
-			http.Error(w, "invalid return url: host is not allowed", http.StatusBadRequest)
-			return
-		}
-
 		session.Values["return"] = returnTo
 		if err := session.Save(r, w); err != nil {
-			http.Error(w, fmt.Errorf("failed to save the return url: %w", err).Error(), http.StatusInternalServerError)
-			return
+			return lerror.Wrap(err, "failed to save the return url", http.StatusInternalServerError)
 		}
 	}
 
@@ -76,47 +61,63 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 
 	loginURL := provider.BuildLoginUrl(state, redirectURL)
 	http.Redirect(w, r, loginURL, http.StatusFound)
+	return nil
 }
 
-func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, providerID string) {
+func (h *OAuthHandler) parseReturnTo(r *http.Request) (string, error) {
+	returnTo := r.FormValue("return")
+	if returnTo == "" {
+		return "", nil
+	}
+
+	returnURL, err := url.Parse(returnTo)
+	if err != nil {
+		return "", lerror.Wrap(err, "failed to parse return url", http.StatusBadRequest)
+	}
+
+	if returnURL.Scheme == "" {
+		return "", lerror.New("invalid return url: scheme is missing", http.StatusBadRequest)
+	}
+
+	if !slices.Contains(h.allowedReturns, returnURL.Host) {
+		return "", lerror.New("invalid return url: host is not allowed", http.StatusBadRequest)
+	}
+
+	return returnTo, nil
+}
+
+func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, providerID string) error {
 	provider, err := h.getProvider(providerID)
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to get provider: %w", err).Error(), http.StatusBadRequest)
-		return
+		return lerror.Wrap(err, "failed to get provider", http.StatusBadRequest)
 	}
 
 	if err := r.ParseForm(); err != nil {
-		http.Error(w, fmt.Errorf("failed to parse form: %w", err).Error(), http.StatusBadRequest)
-		return
+		return lerror.Wrap(err, "failed to parse form", http.StatusBadRequest)
 	}
 
 	state := r.FormValue("state")
 	if state == "" {
-		http.Error(w, "state not found", http.StatusBadRequest)
-		return
+		return lerror.New("state not found", http.StatusBadRequest)
 	}
 
 	session, err := h.store.New(r, h.sessionName)
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to get session: %w", err).Error(), http.StatusBadRequest)
-		return
+		return lerror.Wrap(err, "failed to get session", http.StatusBadRequest)
 	}
 
 	if session.Values["state"] != state {
-		http.Error(w, "state mismatch", http.StatusBadRequest)
-		return
+		return lerror.New("state mismatch", http.StatusBadRequest)
 	}
 
 	code := r.FormValue("code")
 	if code == "" {
-		http.Error(w, "code not found", http.StatusBadRequest)
-		return
+		return lerror.New("code not found", http.StatusBadRequest)
 	}
 
 	u, err := provider.GetUser(code)
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to get user from provider: %w", err).Error(), http.StatusInternalServerError)
-		return
+		return lerror.Wrap(err, "failed to get user from provider", http.StatusInternalServerError)
 	}
 
 	var user *models.User
@@ -124,37 +125,32 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	user, err = h.app.GetUserByProviderID(ctx, u.Providers[0].UserID)
 	if err != nil {
 		if !errors.Is(err, repo.ErrNotFound) {
-			http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
-			return
+			return lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)
 		}
 
 		// User was not found, check if it exist through another provider
 		user, err = h.app.GetUserByEmail(ctx, u.Email)
 		if err != nil {
 			if !errors.Is(err, repo.ErrNotFound) {
-				http.Error(w, fmt.Errorf("failed to get user: %w", err).Error(), http.StatusInternalServerError)
-				return
+				return lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)
 			}
 
 			// User does not exist. Create the user
 			user, err = h.app.CreateUser(ctx, u)
 			if err != nil {
-				http.Error(w, fmt.Errorf("failed to create user: %w", err).Error(), http.StatusInternalServerError)
-				return
+				return lerror.Wrap(err, "failed to create user", http.StatusInternalServerError)
 			}
 		} else {
 			err = h.app.AddUserProvider(ctx, user.ID, u.Providers[0])
 			if err != nil {
-				http.Error(w, fmt.Errorf("failed to add user provider: %w", err).Error(), http.StatusInternalServerError)
-				return
+				return lerror.Wrap(err, "failed to add user provider", http.StatusInternalServerError)
 			}
 		}
 	}
 
 	token, err := h.app.CreateToken(ctx, user)
 	if err != nil {
-		http.Error(w, fmt.Errorf("failed to create token: %w", err).Error(), http.StatusInternalServerError)
-		return
+		return lerror.Wrap(err, "failed to create token", http.StatusInternalServerError)
 	}
 
 	cookie := &http.Cookie{
@@ -176,4 +172,5 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	fmt.Println("Redirecting to:", returnTo.(string))
 	w.Header().Set("Location", returnTo.(string))
 	w.WriteHeader(http.StatusFound)
+	return nil
 }

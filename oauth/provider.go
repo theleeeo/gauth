@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/theleeeo/thor/app"
+	"github.com/theleeeo/thor/lerror"
 	"github.com/theleeeo/thor/models"
 )
 
@@ -82,13 +83,18 @@ func (h *OAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var err error
 	switch action {
 	case "login":
-		h.serveLogin(w, r, providerPath)
+		err = h.serveLogin(w, r, providerPath)
 	case "callback":
-		h.serveCallback(w, r, providerPath)
+		err = h.serveCallback(w, r, providerPath)
 	default:
 		http.NotFound(w, r)
 		return
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), lerror.Status(err))
 	}
 }
