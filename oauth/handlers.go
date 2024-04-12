@@ -34,6 +34,7 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 	// The error does not matter as a new session will be created either way.
 	// We want to discard any old sessions anyways
 	session, _ := h.store.New(r, h.sessionName)
+	session.Values = make(map[interface{}]interface{})
 
 	state, err := GenerateState()
 	if err != nil {
@@ -169,7 +170,6 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	}
 
 	http.SetCookie(w, cookie)
-	fmt.Println("Redirecting to:", returnTo.(string))
 	w.Header().Set("Location", returnTo.(string))
 	w.WriteHeader(http.StatusFound)
 	return nil
