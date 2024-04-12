@@ -1,6 +1,7 @@
 package oauth
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
@@ -121,32 +122,10 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return lerror.Wrap(err, "failed to get user from provider", http.StatusInternalServerError)
 	}
 
-	var user *models.User
 	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: models.RoleAdmin})
-	user, err = h.app.GetUserByProviderID(ctx, u.Providers[0].UserID)
+	user, err := h.constructUser(ctx, u)
 	if err != nil {
-		if !errors.Is(err, repo.ErrNotFound) {
-			return lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)
-		}
-
-		// User was not found, check if it exist through another provider
-		user, err = h.app.GetUserByEmail(ctx, u.Email)
-		if err != nil {
-			if !errors.Is(err, repo.ErrNotFound) {
-				return lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)
-			}
-
-			// User does not exist. Create the user
-			user, err = h.app.CreateUser(ctx, u)
-			if err != nil {
-				return lerror.Wrap(err, "failed to create user", http.StatusInternalServerError)
-			}
-		} else {
-			err = h.app.AddUserProvider(ctx, user.ID, u.Providers[0])
-			if err != nil {
-				return lerror.Wrap(err, "failed to add user provider", http.StatusInternalServerError)
-			}
-		}
+		return err
 	}
 
 	token, err := h.app.CreateToken(ctx, user)
@@ -173,4 +152,37 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	w.Header().Set("Location", returnTo.(string))
 	w.WriteHeader(http.StatusFound)
 	return nil
+}
+
+// Try to get the user. If the user does not exist, create it.
+func (h *OAuthHandler) constructUser(ctx context.Context, u *models.User) (*models.User, error) {
+	// Try to get the user by the provider id
+	user, err := h.app.GetUserByProviderID(ctx, u.Providers[0].UserID)
+	if err == nil {
+		return user, nil
+	}
+	if !errors.Is(err, repo.ErrNotFound) {
+		return nil, lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)
+	}
+
+	// User was not found, check if it exist through another provider
+	user, err = h.app.GetUserByEmail(ctx, u.Email)
+	if err == nil {
+		err = h.app.AddUserProvider(ctx, user.ID, u.Providers[0])
+		if err != nil {
+			return nil, lerror.Wrap(err, "failed to add user provider", http.StatusInternalServerError)
+		}
+
+	}
+	if !errors.Is(err, repo.ErrNotFound) {
+		return nil, lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)
+	}
+
+	// User does not exist. Create the user
+	user, err = h.app.CreateUser(ctx, u)
+	if err != nil {
+		return nil, lerror.Wrap(err, "failed to create user", http.StatusInternalServerError)
+	}
+
+	return user, nil
 }
