@@ -172,7 +172,7 @@ func (h *OAuthHandler) constructUser(ctx context.Context, u *models.User) (*mode
 		if err != nil {
 			return nil, lerror.Wrap(err, "failed to add user provider", http.StatusInternalServerError)
 		}
-
+		return user, nil
 	}
 	if !errors.Is(err, repo.ErrNotFound) {
 		return nil, lerror.Wrap(err, "failed to get user", http.StatusInternalServerError)

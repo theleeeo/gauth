@@ -8,7 +8,8 @@ import (
 )
 
 type Config struct {
-	Addr string `yaml:"addr"`
+	Addr   string `yaml:"addr"`
+	AppUrl string `yaml:"app-url"`
 
 	AuthCfg AuthConfig `yaml:"auth-tokens"`
 

@@ -14,17 +14,18 @@ type Authorizer struct {
 	publicKey     crypto.PublicKey
 	rawPublicKey  []byte
 	validDuration time.Duration
+	appUrl        string
 
 	parser *jwt.Parser
 }
 
-func New(privateKey, publicKey []byte, validDuration time.Duration) (*Authorizer, error) {
-	pub, err := jwt.ParseEdPublicKeyFromPEM(publicKey)
+func New(cfg *Config) (*Authorizer, error) {
+	pub, err := jwt.ParseEdPublicKeyFromPEM(cfg.PublicKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse public key: %w", err)
 	}
 
-	priv, err := jwt.ParseEdPrivateKeyFromPEM(privateKey)
+	priv, err := jwt.ParseEdPrivateKeyFromPEM(cfg.PrivateKey)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse private key: %w", err)
 	}
@@ -32,8 +33,9 @@ func New(privateKey, publicKey []byte, validDuration time.Duration) (*Authorizer
 	return &Authorizer{
 		privateKey:    priv,
 		publicKey:     pub,
-		rawPublicKey:  publicKey,
-		validDuration: validDuration,
+		rawPublicKey:  cfg.PublicKey,
+		validDuration: cfg.ValidDuration,
+		appUrl:        cfg.AppUrl,
 		parser:        jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodEdDSA.Alg()}), jwt.WithExpirationRequired()),
 	}, nil
 }
@@ -57,20 +59,15 @@ func (a *Authorizer) Decode(token string) (*Claims, error) {
 	}
 
 	return claims, nil
-
-	// return &Claims{
-	// 	UserID:     claims["sub"].(string),
-	// 	Expiration: time.Unix(int64(claims["exp"].(float64)), 0),
-	// 	Role:       models.Role(claims["role"].(string)),
-	// }, nil
 }
 
 func (a *Authorizer) CreateToken(user *models.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA,
 		&Claims{
-			UserID:     user.ID,
-			Expiration: time.Now().Add(a.validDuration),
-			Role:       user.Role,
+			Issuer:    a.appUrl,
+			UserID:    user.ID,
+			ExpiresAt: time.Now().Add(a.validDuration),
+			Role:      user.Role,
 		},
 	)
 

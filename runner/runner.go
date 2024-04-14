@@ -32,7 +32,12 @@ func Run(cfg *Config) error {
 		return err
 	}
 
-	auth, err := authorizer.New(privKey, pubKey, cfg.AuthCfg.ValidDuration)
+	auth, err := authorizer.New(&authorizer.Config{
+		AppUrl:        cfg.AppUrl,
+		PrivateKey:    privKey,
+		PublicKey:     pubKey,
+		ValidDuration: cfg.AuthCfg.ValidDuration,
+	})
 	if err != nil {
 		return err
 	}
