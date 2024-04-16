@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/models"
 	"github.com/theleeeo/thor/repo"
 	"github.com/theleeeo/thor/role"
+	"github.com/theleeeo/thor/sdk"
 	"github.com/theleeeo/thor/user"
 )
 
@@ -48,9 +50,9 @@ func (a *App) WhoAmI(ctx context.Context, token string) (user.User, error) {
 }
 
 func (a *App) GetUserByID(ctx context.Context, id string) (user.User, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) && !sdk.UserIs(ctx, id) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") && !sdk.UserIs(ctx, id) {
+		return user.User{}, errors.New("forbidden")
+	}
 
 	u, err := a.userService.Get(ctx, repo.GetUserParams{ID: &id})
 	if err != nil {
@@ -61,9 +63,9 @@ func (a *App) GetUserByID(ctx context.Context, id string) (user.User, error) {
 }
 
 func (a *App) GetUserByEmail(ctx context.Context, email string) (user.User, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return user.User{}, errors.New("forbidden")
+	}
 
 	u, err := a.userService.Get(ctx, repo.GetUserParams{Email: &email})
 	if err != nil {
@@ -74,9 +76,9 @@ func (a *App) GetUserByEmail(ctx context.Context, email string) (user.User, erro
 }
 
 func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (user.User, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return user.User{}, errors.New("forbidden")
+	}
 
 	u, err := a.userService.GetByProviderID(ctx, providerID)
 	if err != nil {
@@ -87,9 +89,9 @@ func (a *App) GetUserByProviderID(ctx context.Context, providerID string) (user.
 }
 
 func (a *App) ListUsers(ctx context.Context, params repo.ListUsersParams) ([]user.User, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return nil, errors.New("forbidden")
+	}
 
 	users, err := a.userService.List(ctx, params)
 	if err != nil {
@@ -100,9 +102,9 @@ func (a *App) ListUsers(ctx context.Context, params repo.ListUsersParams) ([]use
 }
 
 func (a *App) CreateUser(ctx context.Context, userModel models.User, provider models.UserProvider) (user.User, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return user.User{}, errors.New("forbidden")
+	}
 
 	u, err := a.userService.Create(ctx, userModel, provider)
 	if err != nil {
@@ -113,9 +115,9 @@ func (a *App) CreateUser(ctx context.Context, userModel models.User, provider mo
 }
 
 func (a *App) CreateRole(ctx context.Context, roleModel models.Role, permissions []models.Permission) (role.Role, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return role.Role{}, errors.New("forbidden")
+	}
 
 	r, err := a.roleService.Create(ctx, roleModel, permissions)
 	if err != nil {
@@ -126,9 +128,9 @@ func (a *App) CreateRole(ctx context.Context, roleModel models.Role, permissions
 }
 
 func (a *App) GetRoleByID(ctx context.Context, id string) (role.Role, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return role.Role{}, errors.New("forbidden")
+	}
 
 	r, err := a.roleService.Get(ctx, id)
 	if err != nil {
@@ -139,9 +141,9 @@ func (a *App) GetRoleByID(ctx context.Context, id string) (role.Role, error) {
 }
 
 func (a *App) ListRoles(ctx context.Context, params repo.ListRolesParams) ([]role.Role, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return nil, errors.New("forbidden")
+	}
 
 	roles, err := a.roleService.List(ctx, params)
 	if err != nil {
@@ -152,9 +154,9 @@ func (a *App) ListRoles(ctx context.Context, params repo.ListRolesParams) ([]rol
 }
 
 func (a *App) AssignRole(ctx context.Context, userID, roleID string) error {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return errors.New("forbidden")
+	}
 
 	u, err := a.userService.Get(ctx, repo.GetUserParams{ID: &userID})
 	if err != nil {
@@ -169,9 +171,9 @@ func (a *App) AssignRole(ctx context.Context, userID, roleID string) error {
 }
 
 func (a *App) RemoveRole(ctx context.Context, userID, roleID string) error {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return errors.New("forbidden")
+	}
 
 	u, err := a.userService.Get(ctx, repo.GetUserParams{ID: &userID})
 	if err != nil {
@@ -186,9 +188,9 @@ func (a *App) RemoveRole(ctx context.Context, userID, roleID string) error {
 }
 
 func (a *App) GetRolesOfUser(ctx context.Context, userID string) ([]role.Role, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") && !sdk.UserIs(ctx, userID) {
+		return nil, errors.New("forbidden")
+	}
 
 	roles, err := a.roleService.GetRolesOfUser(ctx, userID)
 	if err != nil {
@@ -199,9 +201,9 @@ func (a *App) GetRolesOfUser(ctx context.Context, userID string) ([]role.Role, e
 }
 
 func (a *App) GetPermissionsOfRole(ctx context.Context, roleID string) ([]models.Permission, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") {
+		return nil, errors.New("forbidden")
+	}
 
 	permissions, err := a.roleService.GetPermissionsOfRole(ctx, roleID)
 	if err != nil {
@@ -212,9 +214,9 @@ func (a *App) GetPermissionsOfRole(ctx context.Context, roleID string) ([]models
 }
 
 func (a *App) GetPermissionsOfUser(ctx context.Context, userID string) ([]models.Permission, error) {
-	// if !sdk.UserIsRole(ctx, models.RoleAdmin) {
-	// 	return nil, errors.New("forbidden")
-	// }
+	if !sdk.UserHas(ctx, "admin", "true") && !sdk.UserIs(ctx, userID) {
+		return nil, errors.New("forbidden")
+	}
 
 	permissions, err := a.userService.GetPermissionsOfUser(ctx, userID)
 	if err != nil {

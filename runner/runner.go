@@ -75,8 +75,8 @@ func Run(cfg *Config) error {
 
 	apiMux := http.NewServeMux()
 	restAPI.Register(apiMux)
-	// rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey(), cfg.OAuthConfig.CookieName), middlewares.PrefixStripper("/api")))
-	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.PrefixStripper("/api")))
+	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey(), cfg.OAuthConfig.CookieName), middlewares.PrefixStripper("/api")))
+	// rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.PrefixStripper("/api")))
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
 

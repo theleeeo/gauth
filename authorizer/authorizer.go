@@ -1,6 +1,7 @@
 package authorizer
 
 import (
+	"context"
 	"crypto"
 	"fmt"
 	"time"
@@ -61,13 +62,23 @@ func (a *Authorizer) Decode(token string) (*Claims, error) {
 	return claims, nil
 }
 
-func (a *Authorizer) CreateToken(user user.User) (string, error) {
+func (a *Authorizer) CreateToken(ctx context.Context, u user.User) (string, error) {
+	perms, err := u.Permissions(ctx)
+	if err != nil {
+		return "", fmt.Errorf("error getting permissions of user: %w", err)
+	}
+
+	permissions := make(map[string]string)
+	for _, p := range perms {
+		permissions[p.Key] = p.Val
+	}
+
 	token := jwt.NewWithClaims(jwt.SigningMethodEdDSA,
 		&Claims{
-			Issuer:    a.appUrl,
-			UserID:    user.ID,
-			ExpiresAt: time.Now().Add(a.validDuration),
-			// Role:      user.Role,
+			Issuer:      a.appUrl,
+			UserID:      u.ID,
+			ExpiresAt:   time.Now().Add(a.validDuration),
+			Permissions: permissions,
 		},
 	)
 

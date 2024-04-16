@@ -40,13 +40,23 @@ func ExtractClaims(r *http.Request, publicKey []byte, cookieName string) (*autho
 	return claims, nil
 }
 
-// func UserIsRole(ctx context.Context, role models.Role) bool {
-// 	claims := ClaimFromCtx(ctx)
-// 	if claims == nil {
-// 		return false
-// 	}
-// 	return claims.Role == role
-// }
+func UserHas(ctx context.Context, permission string, value string) bool {
+	claims := ClaimFromCtx(ctx)
+	if claims == nil {
+		return false
+	}
+
+	if claims.Permissions == nil {
+		return false
+	}
+
+	v, ok := claims.Permissions[permission]
+	if !ok {
+		return false
+	}
+
+	return v == value
+}
 
 func UserIs(ctx context.Context, userID string) bool {
 	claims := ClaimFromCtx(ctx)

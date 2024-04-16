@@ -124,13 +124,13 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	}
 
 	// ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: models.RoleAdmin})
-	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{})
+	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Permissions: map[string]string{"admin": "true"}})
 	user, err := h.constructUser(ctx, u, pr)
 	if err != nil {
 		return err
 	}
 
-	token, err := h.auth.CreateToken(user)
+	token, err := h.auth.CreateToken(ctx, user)
 	if err != nil {
 		return lerror.Wrap(err, "failed to create token", http.StatusInternalServerError)
 	}
