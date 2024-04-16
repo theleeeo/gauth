@@ -46,37 +46,35 @@ func (g *googleHandler) Type() string {
 	return string(GoogleProviderType)
 }
 
-func (g *googleHandler) GetUser(code string) (*models.User, error) {
+func (g *googleHandler) GetUser(code string) (models.User, models.UserProvider, error) {
 	token, err := g.getIdToken(code)
 	if err != nil {
-		return nil, err
+		return models.User{}, models.UserProvider{}, err
 	}
 
 	// It is safe to do this unverified because we know that the token is directly from google
 	t, _, err := jwt.NewParser().ParseUnverified(token, &googleClaims{})
 	if err != nil {
-		return nil, fmt.Errorf("could not parse JWT token: %v", err)
+		return models.User{}, models.UserProvider{}, fmt.Errorf("could not parse JWT token: %v", err)
 	}
 
 	claims, ok := t.Claims.(*googleClaims)
 	if !ok {
-		return nil, fmt.Errorf("could not parse JWT claims")
+		return models.User{}, models.UserProvider{}, fmt.Errorf("could not parse JWT claims")
 	}
 
 	if !claims.EmailVerified {
-		return nil, fmt.Errorf("email not verified")
+		return models.User{}, models.UserProvider{}, fmt.Errorf("email not verified")
 	}
 
-	return &models.User{
-		Name:  claims.Given_name + " " + claims.Family_name,
-		Email: claims.Email,
-		Providers: []models.UserProvider{
-			{
-				UserID: claims.Subject,
-				Type:   models.UserProviderTypeGoogle,
-			},
+	return models.User{
+			Name:  claims.Given_name + " " + claims.Family_name,
+			Email: claims.Email,
 		},
-	}, nil
+		models.UserProvider{
+			UserID: claims.Subject,
+			Type:   models.UserProviderTypeGoogle,
+		}, nil
 }
 
 func (g *googleHandler) getIdToken(code string) (string, error) {

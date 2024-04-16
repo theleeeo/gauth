@@ -7,18 +7,14 @@ type User struct {
 	// The user's email
 	Email string `json:"email"`
 
-	Role Role `json:"role"`
+	// // Through which providers the user is authenticated
+	// Providers []UserProvider `json:"providers"`
 
-	// Through which providers the user is authenticated
-	Providers []UserProvider `json:"providers"`
+	// roles []Role
+
+	// // Key-value pairs of the user
+	// permissions map[string]string
 }
-
-type Role string
-
-const (
-	RoleUser  Role = "user"
-	RoleAdmin Role = "admin"
-)
 
 type UserProviderType string
 
@@ -32,4 +28,14 @@ type UserProvider struct {
 	Type UserProviderType `json:"user-provider-type"`
 	// The user's ID in the provider's system
 	UserID string `json:"user-id"`
+}
+
+type Role struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type Permission struct {
+	Key string
+	Val string
 }

@@ -83,7 +83,10 @@ func main() {
 
 	migrationFiles := []string{
 		"users.sql",
-		"providers.sql",
+		"user_providers.sql",
+		"roles.sql",
+		"user_roles.sql",
+		"role_permissions.sql",
 	}
 
 	for _, file := range migrationFiles {

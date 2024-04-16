@@ -4,16 +4,15 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/theleeeo/thor/models"
 )
 
 var _ jwt.Claims = &Claims{}
 
 type Claims struct {
-	Issuer    string      `json:"iss"`
-	UserID    string      `json:"sub"`
-	ExpiresAt time.Time   `json:"exp"`
-	Role      models.Role `json:"role"`
+	Issuer    string    `json:"iss"`
+	UserID    string    `json:"sub"`
+	ExpiresAt time.Time `json:"exp"`
+	// Role      models.Role `json:"role"`
 }
 
 func (c *Claims) GetAudience() (jwt.ClaimStrings, error) {

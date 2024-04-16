@@ -11,6 +11,7 @@ import (
 	"github.com/theleeeo/thor/middlewares"
 	"github.com/theleeeo/thor/oauth"
 	"github.com/theleeeo/thor/repo"
+	"github.com/theleeeo/thor/role"
 	"github.com/theleeeo/thor/user"
 )
 
@@ -51,33 +52,38 @@ func Run(cfg *Config) error {
 	}
 	defer repo.Close()
 
-	//
-	// Create the user service
+	// User service
 	//
 	userSrv := user.NewService(repo)
 
 	//
-	// Create the app
+	// Role service
 	//
-	appImpl := app.New(auth, userSrv)
+	roleSrv := role.NewService(repo)
+
+	//
+	// App
+	//
+	appImpl := app.New(auth, userSrv, roleSrv)
 
 	rootMux := http.DefaultServeMux
 
 	//
-	// Create the rest handler
+	// Rest handler
 	//
 	restAPI := entrypoints.NewRestHandler(appImpl, cfg.OAuthConfig.CookieName)
 
 	apiMux := http.NewServeMux()
 	restAPI.Register(apiMux)
-	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey(), cfg.OAuthConfig.CookieName), middlewares.PrefixStripper("/api")))
+	// rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey(), cfg.OAuthConfig.CookieName), middlewares.PrefixStripper("/api")))
+	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.PrefixStripper("/api")))
 
 	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
 
 	//
 	//	Create the oauth handler
 	//
-	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, appImpl)
+	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, appImpl, auth)
 	if err != nil {
 		return err
 	}

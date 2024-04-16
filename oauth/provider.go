@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/sessions"
 	"github.com/theleeeo/thor/app"
+	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/lerror"
 	"github.com/theleeeo/thor/models"
 )
@@ -16,11 +17,12 @@ type Provider interface {
 	Type() string
 	Name() string
 	BuildLoginUrl(state, redirectUrl string) string
-	GetUser(code string) (*models.User, error)
+	GetUser(code string) (models.User, models.UserProvider, error)
 }
 
 type OAuthHandler struct {
 	app   *app.App
+	auth  *authorizer.Authorizer
 	store *sessions.CookieStore
 
 	providers []Provider
@@ -32,7 +34,7 @@ type OAuthHandler struct {
 	allowedReturns []string
 }
 
-func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
+func NewOAuthHandler(cfg *Config, app *app.App, auth *authorizer.Authorizer) (*OAuthHandler, error) {
 	appUrl, err := url.Parse(cfg.AppURL)
 	if err != nil {
 		return nil, err
@@ -40,6 +42,7 @@ func NewOAuthHandler(cfg *Config, app *app.App) (*OAuthHandler, error) {
 
 	h := &OAuthHandler{
 		app:            app,
+		auth:           auth,
 		store:          sessions.NewCookieStore([]byte(cfg.CookieSecret)),
 		appUrl:         appUrl,
 		cookieName:     cfg.CookieName,

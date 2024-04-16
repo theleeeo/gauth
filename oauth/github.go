@@ -39,10 +39,10 @@ func (g *githubHandler) Type() string {
 	return string(GithubProviderType)
 }
 
-func (g *githubHandler) GetUser(code string) (*models.User, error) {
+func (g *githubHandler) GetUser(code string) (models.User, models.UserProvider, error) {
 	token, err := g.getAccessToken(code)
 	if err != nil {
-		return nil, err
+		return models.User{}, models.UserProvider{}, err
 	}
 
 	req, _ := http.NewRequest("GET", "https://api.github.com/user", nil)
@@ -51,7 +51,7 @@ func (g *githubHandler) GetUser(code string) (*models.User, error) {
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return models.User{}, models.UserProvider{}, err
 	}
 	defer res.Body.Close()
 
@@ -63,19 +63,16 @@ func (g *githubHandler) GetUser(code string) (*models.User, error) {
 	}{}
 
 	if err := json.NewDecoder(res.Body).Decode(&user); err != nil {
-		return nil, err
+		return models.User{}, models.UserProvider{}, err
 	}
 
-	return &models.User{
-		Name:  user.Name,
-		Email: user.Email,
-		Providers: []models.UserProvider{
-			{
-				UserID: fmt.Sprintf("%d", user.ID),
-				Type:   models.UserProviderTypeGithub,
-			},
-		},
-	}, nil
+	return models.User{
+			Name:  user.Name,
+			Email: user.Email,
+		}, models.UserProvider{
+			UserID: fmt.Sprintf("%d", user.ID),
+			Type:   models.UserProviderTypeGithub,
+		}, nil
 }
 
 func (g *githubHandler) getAccessToken(code string) (string, error) {

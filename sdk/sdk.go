@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/theleeeo/thor/authorizer"
-	"github.com/theleeeo/thor/models"
 )
 
 type ClaimsContextKey string
@@ -41,13 +40,13 @@ func ExtractClaims(r *http.Request, publicKey []byte, cookieName string) (*autho
 	return claims, nil
 }
 
-func UserIsRole(ctx context.Context, role models.Role) bool {
-	claims := ClaimFromCtx(ctx)
-	if claims == nil {
-		return false
-	}
-	return claims.Role == role
-}
+// func UserIsRole(ctx context.Context, role models.Role) bool {
+// 	claims := ClaimFromCtx(ctx)
+// 	if claims == nil {
+// 		return false
+// 	}
+// 	return claims.Role == role
+// }
 
 func UserIs(ctx context.Context, userID string) bool {
 	claims := ClaimFromCtx(ctx)
