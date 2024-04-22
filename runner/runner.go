@@ -83,7 +83,7 @@ func Run(cfg *Config) error {
 	//
 	//	Create the oauth handler
 	//
-	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, appImpl, auth)
+	oauthHandler, err := oauth.NewOAuthHandler(cfg.OAuthConfig, userSrv, auth)
 	if err != nil {
 		return err
 	}

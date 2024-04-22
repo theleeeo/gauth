@@ -10,11 +10,9 @@ import (
 	"net/url"
 	"slices"
 
-	"github.com/theleeeo/thor/authorizer"
 	"github.com/theleeeo/thor/lerror"
 	"github.com/theleeeo/thor/models"
 	"github.com/theleeeo/thor/repo"
-	"github.com/theleeeo/thor/sdk"
 	"github.com/theleeeo/thor/user"
 )
 
@@ -123,14 +121,12 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return lerror.Wrap(err, "failed to get user from provider", http.StatusInternalServerError)
 	}
 
-	// ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Role: models.RoleAdmin})
-	ctx := sdk.WithClaims(r.Context(), &authorizer.Claims{Permissions: map[string]string{"admin": "true"}})
-	user, err := h.constructUser(ctx, u, pr)
+	user, err := h.constructUser(r.Context(), u, pr)
 	if err != nil {
 		return err
 	}
 
-	token, err := h.auth.CreateToken(ctx, user)
+	token, err := h.auth.CreateToken(r.Context(), user)
 	if err != nil {
 		return lerror.Wrap(err, "failed to create token", http.StatusInternalServerError)
 	}
@@ -167,7 +163,7 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 // Try to get the user. If the user does not exist, create it.
 func (h *OAuthHandler) constructUser(ctx context.Context, userModel models.User, provider models.UserProvider) (user.User, error) {
 	// Try to get the u by the provider id
-	u, err := h.app.GetUserByProviderID(ctx, provider.UserID)
+	u, err := h.userService.GetByProviderID(ctx, provider.UserID)
 	if err == nil {
 		return u, nil
 	}
@@ -176,7 +172,7 @@ func (h *OAuthHandler) constructUser(ctx context.Context, userModel models.User,
 	}
 
 	// User was not found, check if it exist through another provider
-	u, err = h.app.GetUserByEmail(ctx, u.Email)
+	u, err = h.userService.Get(ctx, repo.GetUserParams{Email: &userModel.Email})
 	if err == nil {
 		err = u.AddProvider(ctx, provider)
 		if err != nil {
@@ -189,7 +185,7 @@ func (h *OAuthHandler) constructUser(ctx context.Context, userModel models.User,
 	}
 
 	// User does not exist. Create the user
-	u, err = h.app.CreateUser(ctx, userModel, provider)
+	u, err = h.userService.Create(ctx, userModel, provider)
 	if err != nil {
 		return user.User{}, lerror.Wrap(err, "failed to create user", http.StatusInternalServerError)
 	}
