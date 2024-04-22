@@ -31,13 +31,21 @@ type OAuthHandler struct {
 	cookieName  string
 	sessionName string
 	// What hosts are allowed to return to after login
-	allowedReturns []string
+	allowedReturns []*url.URL
 }
 
 func NewOAuthHandler(cfg *Config, userService *user.Service, auth *authorizer.Authorizer) (*OAuthHandler, error) {
 	appUrl, err := url.Parse(cfg.AppURL)
 	if err != nil {
 		return nil, err
+	}
+
+	allowedReturns := make([]*url.URL, len(cfg.AllowedReturns))
+	for i, u := range cfg.AllowedReturns {
+		allowedReturns[i], err = url.Parse(u)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	h := &OAuthHandler{
@@ -47,7 +55,7 @@ func NewOAuthHandler(cfg *Config, userService *user.Service, auth *authorizer.Au
 		appUrl:         appUrl,
 		cookieName:     cfg.CookieName,
 		sessionName:    cfg.SessionName,
-		allowedReturns: cfg.AllowedReturns,
+		allowedReturns: allowedReturns,
 	}
 
 	for _, providerCfg := range cfg.Providers {

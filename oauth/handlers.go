@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"slices"
 
 	"github.com/theleeeo/thor/lerror"
 	"github.com/theleeeo/thor/models"
@@ -46,7 +45,7 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 		return lerror.Wrap(err, "failed to save the state", http.StatusInternalServerError)
 	}
 
-	returnTo, err := h.parseReturnTo(r)
+	returnTo, err := parseReturnTo(h.allowedReturns, r)
 	if err != nil {
 		return err
 	}
@@ -65,7 +64,7 @@ func (h *OAuthHandler) serveLogin(w http.ResponseWriter, r *http.Request, provid
 	return nil
 }
 
-func (h *OAuthHandler) parseReturnTo(r *http.Request) (string, error) {
+func parseReturnTo(allowedReturns []*url.URL, r *http.Request) (string, error) {
 	returnTo := r.FormValue("return")
 	if returnTo == "" {
 		return "", nil
@@ -80,11 +79,17 @@ func (h *OAuthHandler) parseReturnTo(r *http.Request) (string, error) {
 		return "", lerror.New("invalid return url: scheme is missing", http.StatusBadRequest)
 	}
 
-	if !slices.Contains(h.allowedReturns, returnURL.Host) {
-		return "", lerror.New("invalid return url: host is not allowed", http.StatusBadRequest)
+	for _, u := range allowedReturns {
+		if u.Host == returnURL.Host {
+			if u.Scheme != returnURL.Scheme {
+				return "", lerror.New("invalid return url: scheme is not allowed", http.StatusBadRequest)
+			}
+
+			return returnTo, nil
+		}
 	}
 
-	return returnTo, nil
+	return "", lerror.New("invalid return url: host is not allowed", http.StatusBadRequest)
 }
 
 func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, providerID string) error {
