@@ -6,8 +6,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var _ jwt.Claims = &Claims{}
-
 type Claims struct {
 	Issuer      string            `json:"iss"`
 	UserID      string            `json:"sub"`

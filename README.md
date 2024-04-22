@@ -15,3 +15,13 @@ The provider should be configured to redirect to \<base-url>/oauth/callback/\<pr
 The following providers are supported:
 - Google
 - Github
+
+## Resources
+
+### Users
+
+### Roles
+
+## Bootstrapping
+
+- TODO

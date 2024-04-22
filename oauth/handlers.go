@@ -135,9 +135,18 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		return lerror.Wrap(err, "failed to create token", http.StatusInternalServerError)
 	}
 
+	var returnTo string
+	ret, ok := session.Values["return"]
+	if ok {
+		ret, ok := ret.(string)
+		if ok {
+			returnTo = ret
+		}
+	}
+
 	cookie := &http.Cookie{
 		Name:     h.cookieName,
-		Domain:   h.appUrl.Hostname(), // TODO: THIS Will have to change when redirects are used
+		Domain:   returnTo,
 		Value:    token,
 		Path:     "/",
 		SameSite: http.SameSiteLaxMode,
@@ -145,13 +154,12 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 		Secure:   !(h.appUrl.Scheme == "http"), // If the app url is http, then the cookie is not secure. Default to secure in all other cases.
 	}
 
-	returnTo := session.Values["return"]
-	if returnTo == nil {
+	if returnTo == "" {
 		returnTo = "/welcome.html"
 	}
 
 	http.SetCookie(w, cookie)
-	w.Header().Set("Location", returnTo.(string))
+	w.Header().Set("Location", returnTo)
 	w.WriteHeader(http.StatusFound)
 	return nil
 }
