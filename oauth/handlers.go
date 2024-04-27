@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
 
@@ -100,6 +101,12 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 
 	if err := r.ParseForm(); err != nil {
 		return lerror.Wrap(err, "failed to parse form", http.StatusBadRequest)
+	}
+
+	formError := r.FormValue("error")
+	if formError != "" {
+		slog.Error("oauth callback error", "error", formError, "error_description", r.FormValue("error_description"), "url", r.URL.String())
+		return lerror.New(formError, http.StatusBadRequest)
 	}
 
 	state := r.FormValue("state")
