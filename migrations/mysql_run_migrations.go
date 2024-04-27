@@ -7,14 +7,15 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/theleeeo/thor/runner"
+	"gopkg.in/yaml.v3"
 )
 
 var (
 	dbUser     string
 	dbPassword string
-	dbName     string
-	dbHost     = "localhost"
-	dbPort     = "3306"
+	dbName     = "thor"
+	dbAddr     = "localhost:3306"
 )
 
 func executeSQLFile(db *sql.DB, filePath string) error {
@@ -48,28 +49,46 @@ func load_env_vars() {
 	if v := os.Getenv("DB_NAME"); v != "" {
 		dbName = v
 	} else {
-		log.Fatal("DB_NAME environment variable is not set")
+		log.Printf("DB_NAME environment variable is not set, using default value (%s)\n", dbAddr)
 	}
 
-	if v := os.Getenv("DB_HOST"); v != "" {
-		dbHost = v
+	if v := os.Getenv("DB_ADDR"); v != "" {
+		dbAddr = v
 	} else {
-		log.Printf("DB_HOST environment variable is not set, using default value (%s)\n", dbHost)
-	}
-
-	if v := os.Getenv("DB_PORT"); v != "" {
-		dbPort = v
-	} else {
-		log.Printf("DB_PORT environment variable is not set, using default value (%s)\n", dbPort)
+		log.Printf("DB_ADDR environment variable is not set, using default value (%s)\n", dbAddr)
 	}
 }
 
+func loadConfig() (*runner.Config, error) {
+	content, err := os.ReadFile("./.thor.yml")
+	if err != nil {
+		return nil, err
+	}
+
+	var config runner.Config
+	err = yaml.Unmarshal(content, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
 func main() {
-	load_env_vars()
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Println("error loading config file, moving on with env-vars:", err)
+		load_env_vars()
+	} else {
+		dbUser = cfg.RepoCfg.MySql.User
+		dbPassword = cfg.RepoCfg.MySql.Password
+		dbName = cfg.RepoCfg.MySql.Database
+		dbAddr = cfg.RepoCfg.MySql.Addr
+	}
 
 	// Build the DSN (Data Source Name)
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?parseTime=true",
+		dbUser, dbPassword, dbAddr, dbName)
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
@@ -82,11 +101,11 @@ func main() {
 	}
 
 	migrationFiles := []string{
-		"users.sql",
-		"user_providers.sql",
-		"roles.sql",
-		"user_roles.sql",
-		"role_permissions.sql",
+		"migrations/users.sql",
+		"migrations/user_providers.sql",
+		"migrations/roles.sql",
+		"migrations/user_roles.sql",
+		"migrations/role_permissions.sql",
 	}
 
 	for _, file := range migrationFiles {
