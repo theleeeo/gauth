@@ -163,7 +163,7 @@ func (h *OAuthHandler) serveCallback(w http.ResponseWriter, r *http.Request, pro
 	}
 
 	if returnTo == "" {
-		returnTo = "/welcome.html"
+		returnTo = "/"
 	}
 
 	http.SetCookie(w, cookie)

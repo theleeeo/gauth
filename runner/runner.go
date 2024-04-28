@@ -3,6 +3,7 @@ package runner
 import (
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/theleeeo/thor/app"
@@ -78,7 +79,15 @@ func Run(cfg *Config) error {
 	rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.ClaimsExtractor(auth.PublicKey(), cfg.OAuthConfig.CookieName), middlewares.PrefixStripper("/api")))
 	// rootMux.Handle("/api/", middlewares.Chain(apiMux, middlewares.PrefixStripper("/api")))
 
-	http.Handle("/", http.FileServer(http.Dir("public"))) // DEBUG ONLY THIS IS JUST WHEN DEVELOPING FOR TESTING
+	errorPageDirector, err := middlewares.ErrorPageDirector(map[int]string{
+		404: "404.html",
+		400: "400.html",
+	}, "internal.html")
+	if err != nil {
+		return err
+	}
+
+	http.Handle("/", errorPageDirector(http.FileServer(HTMLDir("public"))))
 
 	//
 	//	Create the oauth handler
@@ -91,7 +100,8 @@ func Run(cfg *Config) error {
 	if err != nil {
 		return err
 	}
-	oauthHandler.Register(rootMux)
+
+	rootMux.Handle("/oauth/", errorPageDirector(oauthHandler))
 
 	httpServer := &http.Server{
 		Addr:         cfg.Addr,
@@ -105,4 +115,14 @@ func Run(cfg *Config) error {
 	}
 
 	return r.httpServer.ListenAndServe()
+}
+
+type HTMLDir string
+
+func (d HTMLDir) Open(name string) (http.File, error) {
+	if name[len(name)-1] != '/' && filepath.Ext(name) == "" {
+		name += ".html"
+	}
+
+	return http.Dir(d).Open(name)
 }

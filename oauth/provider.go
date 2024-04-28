@@ -72,10 +72,6 @@ func NewOAuthHandler(cfg *Config, userService *user.Service, auth *authorizer.Au
 	return h, nil
 }
 
-func (h *OAuthHandler) Register(mux *http.ServeMux) {
-	mux.Handle("/oauth/", h)
-}
-
 func (h *OAuthHandler) getProvider(path string) (Provider, error) {
 	for _, p := range h.providers {
 		if fmt.Sprintf("%s/%s", p.Type(), p.Name()) == path {

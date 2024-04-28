@@ -6,14 +6,6 @@ type User struct {
 	Name string `json:"name"`
 	// The user's email
 	Email string `json:"email"`
-
-	// // Through which providers the user is authenticated
-	// Providers []UserProvider `json:"providers"`
-
-	// roles []Role
-
-	// // Key-value pairs of the user
-	// permissions map[string]string
 }
 
 type UserProviderType string
