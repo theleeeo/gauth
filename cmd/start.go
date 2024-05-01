@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"os"
 
@@ -35,8 +35,7 @@ var startCmd = &cobra.Command{
 			return err
 		}
 
-		fmt.Println("Config:", cfg)
-		fmt.Println("OauthCfg:", cfg.OAuthConfig)
+		log.Println("Config:", prettyPrint(cfg))
 
 		if err := runner.Run(cfg); err != nil {
 			log.Println(err)
@@ -45,4 +44,9 @@ var startCmd = &cobra.Command{
 
 		return nil
 	},
+}
+
+func prettyPrint(i interface{}) string {
+	s, _ := json.MarshalIndent(i, "", "  ")
+	return string(s)
 }

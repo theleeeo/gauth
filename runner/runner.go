@@ -69,6 +69,8 @@ func Run(cfg *Config) error {
 
 	rootMux := http.DefaultServeMux
 
+	rootMux.HandleFunc("/keys", auth.ServePublicKeys)
+
 	//
 	// Rest handler
 	//
@@ -87,7 +89,7 @@ func Run(cfg *Config) error {
 		return err
 	}
 
-	http.Handle("/", errorPageDirector(http.FileServer(HTMLDir("public"))))
+	rootMux.Handle("/", errorPageDirector(http.FileServer(HTMLDir("public"))))
 
 	//
 	//	Create the oauth handler

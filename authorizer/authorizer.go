@@ -3,7 +3,9 @@ package authorizer
 import (
 	"context"
 	"crypto"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -43,6 +45,19 @@ func New(cfg *Config) (*Authorizer, error) {
 
 func (a *Authorizer) PublicKey() []byte {
 	return a.rawPublicKey
+}
+
+func (a *Authorizer) ServePublicKeys(w http.ResponseWriter, r *http.Request) {
+
+	type key struct {
+		Key string `json:"key"`
+	}
+
+	keys := map[string]any{"keys": key{Key: string(a.rawPublicKey)}}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(keys)
 }
 
 func (a *Authorizer) Decode(token string) (*Claims, error) {
